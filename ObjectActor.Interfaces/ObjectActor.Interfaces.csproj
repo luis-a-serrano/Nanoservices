@@ -13,4 +13,8 @@
     <PackageReference Include="Microsoft.ServiceFabric.Services" Version="3.1.262" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\WebOfThings\WebOfThings.csproj" />
+  </ItemGroup>
+
 </Project>

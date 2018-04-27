@@ -5,11 +5,13 @@ VisualStudioVersion = 15.0.27428.2037
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{A07B5EB6-E848-4116-A8D0-A826331D98C6}") = "NanoservicesApp", "NanoservicesApp\NanoservicesApp.sfproj", "{18D6CEE2-BBD2-4C7F-8C77-DB5595077337}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjectActor", "ObjectActor\ObjectActor.csproj", "{48221D50-C25E-40FA-8E99-D841771DF4A6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectActor", "ObjectActor\ObjectActor.csproj", "{48221D50-C25E-40FA-8E99-D841771DF4A6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjectActor.Interfaces", "ObjectActor.Interfaces\ObjectActor.Interfaces.csproj", "{DD627D5D-0DB0-4AE8-9C2F-D666D4089E4E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectActor.Interfaces", "ObjectActor.Interfaces\ObjectActor.Interfaces.csproj", "{DD627D5D-0DB0-4AE8-9C2F-D666D4089E4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjectAPI", "ObjectAPI\ObjectAPI.csproj", "{0AB307E3-766F-46D2-B478-6BE96BEFF375}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectAPI", "ObjectAPI\ObjectAPI.csproj", "{0AB307E3-766F-46D2-B478-6BE96BEFF375}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebOfThings", "WebOfThings\WebOfThings.csproj", "{4D7B00D5-ABA4-497C-91AC-63C9437E8ADC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,14 @@ Global
 		{0AB307E3-766F-46D2-B478-6BE96BEFF375}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0AB307E3-766F-46D2-B478-6BE96BEFF375}.Release|x64.ActiveCfg = Release|Any CPU
 		{0AB307E3-766F-46D2-B478-6BE96BEFF375}.Release|x64.Build.0 = Release|Any CPU
+		{4D7B00D5-ABA4-497C-91AC-63C9437E8ADC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D7B00D5-ABA4-497C-91AC-63C9437E8ADC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D7B00D5-ABA4-497C-91AC-63C9437E8ADC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4D7B00D5-ABA4-497C-91AC-63C9437E8ADC}.Debug|x64.Build.0 = Debug|Any CPU
+		{4D7B00D5-ABA4-497C-91AC-63C9437E8ADC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D7B00D5-ABA4-497C-91AC-63C9437E8ADC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D7B00D5-ABA4-497C-91AC-63C9437E8ADC}.Release|x64.ActiveCfg = Release|Any CPU
+		{4D7B00D5-ABA4-497C-91AC-63C9437E8ADC}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

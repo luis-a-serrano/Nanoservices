@@ -7,13 +7,20 @@ using Microsoft.ServiceFabric.Actors;
 using Microsoft.ServiceFabric.Actors.Runtime;
 using Microsoft.ServiceFabric.Actors.Client;
 using ObjectActor.Interfaces;
+using WebOfThings;
 
 namespace ObjectActor {
 
+   [ActorService(Name = ObjectService.Name)]
    [StatePersistence(StatePersistence.Persisted)]
    internal class ObjectActor: Actor, IObjectActor {
+
       private const string PropertyPrefix = "P:";
-      private const string MethodPrefix = "M:";
+      private const string PropertyReadHandlerPrefix = "PRH:";
+      private const string PropertyWriteHandlerPrefix = "PWH:";
+
+      private const string ActionPrefix = "A:";
+      private const string ActionHandlerPrefix = "AH:";
 
       public ObjectActor(ActorService actorService, ActorId actorId)
           : base(actorService, actorId) {
@@ -24,100 +31,161 @@ namespace ObjectActor {
          return Task.CompletedTask;
       }
 
-      Task<string> IObjectActor.ConstructInstanceAsync() {
-         // NOTE: Should it be here where we program the code that allows the user
-         // to create a private object? It could probably involve using an additional
-         // key when creating the object.
+      /* IWoTExposedThing */
+      public Task Start() {
          throw new NotImplementedException();
       }
 
-      async Task<bool> IObjectActor.DefineMethodAsync(string name, string source, bool overwrite) {
-         var reply = true;
-         var desiredMethod = await this.StateManager.TryGetStateAsync<string>(MethodPrefix + name);
-
-         if (!desiredMethod.HasValue || overwrite) {
-            await this.StateManager.SetStateAsync(MethodPrefix + name, source);
-         } else {
-            reply = false;
-         }
-
-         return reply;
-      }
-
-      async Task<bool> IObjectActor.DefinePropertyAsync(string name, PropertyDescriptor propertyDescriptor, bool overwrite) {
-         var reply = true;
-         var desiredProperty = await this.StateManager.TryGetStateAsync<PropertyDescriptor>(PropertyPrefix + name);   
-         
-         if (!desiredProperty.HasValue || overwrite) {
-            await this.StateManager.SetStateAsync(PropertyPrefix + name, propertyDescriptor);
-         } else {
-            reply = false;
-         }
-
-         return reply;
-      }
-
-      Task<bool> IObjectActor.DestroyInstanceAsync() {
+      public Task Stop() {
          throw new NotImplementedException();
       }
 
-      async Task<bool> IObjectActor.EraseMethodAsync(string name) {
-         return await this.StateManager.TryRemoveStateAsync(MethodPrefix + name);
+      public Task Register(string directory = null) {
+         throw new NotImplementedException();
       }
 
-      async Task<bool> IObjectActor.ErasePropertyAsync(string name) {
-         return await this.StateManager.TryRemoveStateAsync(PropertyPrefix + name);
+      public Task Unregister(string directory = null) {
+         throw new NotImplementedException();
       }
 
-      async Task IObjectActor.ExecuteMethodAsync(string name) {
-         var desiredMethod = await this.StateManager.TryGetStateAsync<string>(MethodPrefix + name);
+      public Task EmitEvent(string eventName, dynamic payload) {
+         throw new NotImplementedException();
+      }
 
-         if (desiredMethod.HasValue) {
-            // TODO: Do a Restful call to the URI stored.
+
+      public async Task<WoTError> AddProperty(WoTThingProperty property) {
+         var desiredProperty = await this.StateManager.TryAddStateAsync(PropertyPrefix + property.Name, property);
+         // TODO: Logic to construct the error if needed.
+         return null;
+      }
+
+      public async Task<WoTError> RemoveProperty(string name) {
+         var desiredProperty = await this.StateManager.TryRemoveStateAsync(PropertyPrefix + name);
+         // TODO: Logic to construct the error if needed.
+         return null;
+      }
+
+      public async Task<WoTError> AddAction(WoTThingAction action) {
+         var desiredAction = await this.StateManager.TryAddStateAsync(ActionPrefix + action.Name, action);
+         // TODO: Logic to construct the error if needed.
+         return null;
+      }
+
+      public async Task<WoTError> RemoveAction(string name) {
+         var desiredAction = await this.StateManager.TryRemoveStateAsync(ActionPrefix + name);
+         // TODO: Logic to construct the error if needed.
+         return null;
+      }
+
+      public Task<WoTError> AddEvent(WoTThingEvent thingEvent) {
+         throw new NotImplementedException();
+      }
+
+      public Task<WoTError> RemoveEvent(string name) {
+         throw new NotImplementedException();
+      }
+
+      public async Task<WoTError> SetPropertyReadHandler(string name, WoTPropertyReadHandler readHandler) {
+         var desiredPropertyReadHandler = await this.StateManager.TryAddStateAsync(PropertyReadHandlerPrefix + name, readHandler);
+         // TODO: Logic to construct the error if needed.
+         return null;
+      }
+
+      public async Task<WoTError> SetPropertyWriteHandler(string name, WoTPropertyWriteHandler writeHandler) {
+         var desiredPropertyWriteHandler = await this.StateManager.TryAddStateAsync(PropertyWriteHandlerPrefix + name, writeHandler);
+         // TODO: Logic to construct the error if needed.
+         return null;
+      }
+
+      public async Task<WoTError> SetActionHandler(string name, WoTActionHandler action) {
+         var desiredActionHandler = await this.StateManager.TryAddStateAsync(ActionHandlerPrefix + name, action);
+         // TODO: Logic to construct the error if needed.
+         return null;
+      }
+
+      /* IWoTConsumedThing */
+      public async Task<string> GetName() {
+         // TODO: Return the proper name.
+         return null;
+      }
+
+      public Task<WoTThingDescription> GetThingDescription() {
+         // TODO: We have two options, either we dynamically create the TD at this moment by querying all the
+         // properties, actions, etc. and return it. Or we return an already created TD which is updated each time
+         // we update something that affects it.
+         // Addendum: Due to "OnTDChange" we probably choose the second option.
+         throw new NotImplementedException();
+      }
+
+      public async Task<dynamic> ReadProperty(string name) {
+         dynamic result = null;
+         var desiredPropertyReadHandler = await this.StateManager.TryGetStateAsync<WoTPropertyReadHandler>(PropertyReadHandlerPrefix + name);
+
+         if (desiredPropertyReadHandler.HasValue) {
+            // TODO: Assuming that the handler is valid then we execute it and send it's result back.
          } else {
-            // Throw?
-         }
-      }
-
-      async Task<string> IObjectActor.GetPropertyValueAsync(string name) {
-         var reply = "";
-         var desiredProperty = await this.StateManager.TryGetStateAsync<PropertyDescriptor>(PropertyPrefix + name);
-
-         if (desiredProperty.HasValue) {
-            switch (desiredProperty.Value.Source) {
-               case SourceType.External:
-                  // TODO: Restful call.
-                  break;
-               case SourceType.Internal:  
-               default:
-                  reply = desiredProperty.Value.Value;
-                  break;
+            var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + name);
+            
+            if (desiredProperty.HasValue) {
+               result = desiredProperty.Value.Value;
+            } else {
+               // Construct an error.
             }
-         } else {
-            // Throw?
          }
 
-         return reply;
+         return result;
       }
 
-      async Task IObjectActor.SetPropertyValueAsync(string name, string value) {
-         var desiredProperty = await this.StateManager.TryGetStateAsync<PropertyDescriptor>(PropertyPrefix + name);
+      public async Task<WoTError> WriteProperty(string name, dynamic value) {
+         WoTError result = null;
+         var desiredPropertyWriteHandler = await this.StateManager.TryGetStateAsync<WoTPropertyWriteHandler>(PropertyWriteHandlerPrefix + name);
 
-         if (desiredProperty.HasValue) {
-            switch (desiredProperty.Value.Source) {
-               case SourceType.External:
-                  // TODO: Not sure what behavior we want to allow here.
-                  break;
-               case SourceType.Internal:
-               default:
-                  desiredProperty.Value.Value = value;
-                  break;
-            }
-
-            await this.StateManager.SetStateAsync(PropertyPrefix + name, desiredProperty.Value);
+         if (desiredPropertyWriteHandler.HasValue) {
+            // TODO: Assuming that the handler is valid then we execute it and send it's result back.
          } else {
-            // Throw?
+            var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + name);
+
+            if (desiredProperty.HasValue) {
+               desiredProperty.Value.Value = value;
+               await this.StateManager.SetStateAsync(PropertyPrefix + name, desiredProperty.Value);
+            } else {
+               // Construct an error.
+            }
          }
+
+         return result;
+      }
+
+      public async Task<dynamic> InvokeAction(string name, dynamic parameters) {
+         dynamic result = null;
+
+         var desiredActionHandler = await this.StateManager.TryGetStateAsync<WoTActionHandler>(ActionHandlerPrefix + name);
+
+         if (desiredActionHandler.HasValue) {
+            // TODO: Assuming that the handler is valid then we execute it and send it's result back.
+         } else {
+            // Construct an error.
+         }
+
+         return result;
+      }
+
+      public WoTObservable OnPropertyChange(string name) {
+         // TODO: This will probably require talking to EventGrid to the the subscription part of
+         // the observables.
+         throw new NotImplementedException();
+      }
+
+      public WoTObservable OnTDChange() {
+         // TODO: This will probably require talking to EventGrid to the the subscription part of
+         // the observables.
+         throw new NotImplementedException();
+      }
+
+      public WoTObservable OnEvent(string name) {
+         // TODO: This will probably require talking to EventGrid to the the subscription part of
+         // the observables.
+         throw new NotImplementedException();
       }
    }
 }
