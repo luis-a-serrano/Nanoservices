@@ -5,5 +5,6 @@ using System.Text;
 namespace WebOfThings {
    // Note: Special structure to make it work for our implementation.
    public class WoTPropertyWriteHandler {
+      public Uri Address { get; set; }
    }
 }

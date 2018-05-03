@@ -1,8 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.ServiceFabric.Actors.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WebOfThings;
+using ObjectActor.Interfaces;
+using Microsoft.ServiceFabric.Actors;
 
 namespace ObjectAPI.Controllers {
    [Route("api/[controller]/{id}")]
@@ -40,26 +44,68 @@ namespace ObjectAPI.Controllers {
          throw new NotImplementedException();
       }
 
-      // Note: The property details should be captured from the request body.
       [HttpPost("add-property")]
-      public Task<IActionResult> AddPropertyAsync(string id) {
-         throw new NotImplementedException();
+      public async Task<IActionResult> AddPropertyAsync(string id, WoTThingProperty property) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         // TODO: Validate the "property" parameter.
+         var potentialError = await actor.AddPropertyAsync(property);
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return CreatedAtAction(
+            nameof(ConsumedThingController.ReadPropertyAsync),
+            nameof(ConsumedThingController),
+            new { id, name = property.Name },
+            property
+         );
       }
 
       [HttpDelete("remove-property/{name}")]
-      public Task<IActionResult> RemovePropertyAsync(string id, string name) {
-         throw new NotImplementedException();
+      public async Task<IActionResult> RemovePropertyAsync(string id, string name) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         var potentialError = await actor.RemovePropertyAsync(name);
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return NoContent();
       }
 
-      // Note: The action details should be captured from the request body.
       [HttpPost("add-action")]
-      public Task<IActionResult> AddActionAsync(string id) {
-         throw new NotImplementedException();
+      public async Task<IActionResult> AddActionAsync(string id, WoTThingAction action) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         // TODO: Validate the "action" parameter.
+         var potentialError = await actor.AddActionAsync(action);
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return CreatedAtAction(
+            nameof(ConsumedThingController.InvokeActionAsync),
+            nameof(ConsumedThingController),
+            new { id, name = action.Name },
+            action
+         );
       }
 
       [HttpDelete("remove-action/{name}")]
-      public Task<IActionResult> RemoveActionAsync(string id, string name) {
-         throw new NotImplementedException();
+      public async Task<IActionResult> RemoveActionAsync(string id, string name) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         var potentialError = await actor.RemoveActionAsync(name);
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return NoContent();
       }
 
       // Note: The event details should be captured from the request body.
@@ -73,22 +119,43 @@ namespace ObjectAPI.Controllers {
          throw new NotImplementedException();
       }
 
-      // Note: The read handler details should be captured from the request body.
-      [HttpPost("set-property-read-handler/{name}")]
-      public Task<IActionResult> SetPropertyReadHandlerAsync(string id, string name) {
-         throw new NotImplementedException();
+      [HttpPut("set-property-read-handler/{propertyName}")]
+      public async Task<IActionResult> SetPropertyReadHandlerAsync(string id, string propertyName, WoTPropertyReadHandler readHandler) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         var potentialError = await actor.SetPropertyReadHandlerAsync(propertyName, readHandler);
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return NoContent();
       }
 
-      // Note: The write handler details should be captured from the request body.
-      [HttpPost("set-property-write-handler/{name}")]
-      public Task<IActionResult> SetPropertyWriteHandlerAsync(string id, string name) {
-         throw new NotImplementedException();
+      [HttpPut("set-property-write-handler/{propertyName}")]
+      public async Task<IActionResult> SetPropertyWriteHandlerAsync(string id, string propertyName, WoTPropertyWriteHandler writeHandler) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         var potentialError = await actor.SetPropertyWriteHandlerAsync(propertyName, writeHandler);
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return NoContent();
       }
 
-      // Note: The action handler details should be captured from the request body.
-      [HttpPost("set-action-handler/{name}")]
-      public Task<IActionResult> SetActionHandlerAsync(string id, string name) {
-         throw new NotImplementedException();
+      [HttpPut("set-action-handler/{actionName}")]
+      public async Task<IActionResult> SetActionHandlerAsync(string id, string actionName, WoTActionHandler actionHandler) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         var potentialError = await actor.SetActionHandlerAsync(actionName, actionHandler);
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return NoContent();
       }
    }
 }

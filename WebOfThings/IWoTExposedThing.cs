@@ -6,21 +6,21 @@ using System.Threading.Tasks;
 namespace WebOfThings {
    // Source: https://w3c.github.io/wot-scripting-api/#the-exposedthing-interface
    public interface IWoTExposedThing: IWoTConsumedThing {
-      Task Start();
-      Task Stop();
-      Task Register(string directory = null);
-      Task Unregister(string directory = null);
-      Task EmitEvent(string eventName, dynamic payload);
+      Task StartAsync();
+      Task StopAsync();
+      Task RegisterAsync(string directory = null);
+      Task UnregisterAsync(string directory = null);
+      Task EmitEventAsync(string eventName, dynamic payload);
 
-      Task<WoTError> AddProperty(WoTThingProperty property);
-      Task<WoTError> RemoveProperty(string name);
-      Task<WoTError> AddAction(WoTThingAction action);
-      Task<WoTError> RemoveAction(string name);
-      Task<WoTError> AddEvent(WoTThingEvent thingEvent);
-      Task<WoTError> RemoveEvent(string name);
+      Task<WoTReply> AddPropertyAsync(WoTThingProperty property);
+      Task<WoTReply> RemovePropertyAsync(string name);
+      Task<WoTReply> AddActionAsync(WoTThingAction action);
+      Task<WoTReply> RemoveActionAsync(string name);
+      Task<WoTReply> AddEventAsync(WoTThingEvent thingEvent);
+      Task<WoTReply> RemoveEventAsync(string name);
 
-      Task<WoTError> SetPropertyReadHandler(string name, WoTPropertyReadHandler readHandler);
-      Task<WoTError> SetPropertyWriteHandler(string name, WoTPropertyWriteHandler writeHandler);
-      Task<WoTError> SetActionHandler(string name, WoTActionHandler action);
+      Task<WoTReply> SetPropertyReadHandlerAsync(string name, WoTPropertyReadHandler readHandler);
+      Task<WoTReply> SetPropertyWriteHandlerAsync(string name, WoTPropertyWriteHandler writeHandler);
+      Task<WoTReply> SetActionHandlerAsync(string name, WoTActionHandler action);
    }
 }

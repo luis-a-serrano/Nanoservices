@@ -1,4 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.ServiceFabric.Actors;
+using Microsoft.ServiceFabric.Actors.Client;
+using Newtonsoft.Json;
+using ObjectActor.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,25 +22,43 @@ namespace ObjectAPI.Controllers {
          throw new NotImplementedException();
       }
 
-      [HttpGet("read/{name}")]
-      public Task<IActionResult> ReadPropertyAsync(string id, string name) {
-         throw new NotImplementedException();
+      [HttpGet("property/{name}")]
+      public async Task<IActionResult> ReadPropertyAsync(string id, string name) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         var potentialError = await actor.ReadPropertyAsync(name);
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return Ok(potentialError);
       }
 
-      // Note: Passing a value to this one might be too much so it probably should come from
-      // the body. However, this requires us to capture the body as a raw data/string and
-      // forward it.
-      [HttpPut("write/{name}/{value}")]
-      public Task<IActionResult> WritePropertyAsync(string id, string name, dynamic value) {
-         throw new NotImplementedException();
+      [HttpPut("property/{name}")]
+      public async Task<IActionResult> WritePropertyAsync(string id, string name, dynamic value) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         var potentialError = await actor.WritePropertyAsync(name, JsonConvert.SerializeObject(value));
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return NoContent();
       }
 
-      // Note: Passing parameters to this one might be too much so it probably should come from
-      // the body. However, this requires us to capture the body as a raw data/string and
-      // forward it.
-      [HttpPost("invoke/{name}/{parameters}")]
-      public Task<IActionResult> InvokeActionAsync(string id, string name, dynamic parameters) {
-         throw new NotImplementedException();
+      [HttpPost("action/{name}")]
+      public async Task<IActionResult> InvokeActionAsync(string id, string name, dynamic parameters) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         var potentialError = await actor.InvokeActionAsync(name, JsonConvert.SerializeObject(parameters));
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return Ok(potentialError);
       }
 
       [HttpPost("on-property-change/{name}")]

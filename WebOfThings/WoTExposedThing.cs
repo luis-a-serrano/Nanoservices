@@ -12,15 +12,15 @@ namespace WebOfThings {
       public abstract Task Unregister(string directory = null);
       public abstract Task EmitEvent(string eventName, dynamic payload);
 
-      public abstract Task<WoTError> AddProperty(WoTThingProperty property);
-      public abstract Task<WoTError> RemoveProperty(string name);
-      public abstract Task<WoTError> AddAction(WoTThingAction action);
-      public abstract Task<WoTError> RemoveAction(string name);
-      public abstract Task<WoTError> AddEvent(WoTThingEvent thingEvent);
-      public abstract Task<WoTError> RemoveEvent(string name);
+      public abstract Task<WoTReply> AddProperty(WoTThingProperty property);
+      public abstract Task<WoTReply> RemoveProperty(string name);
+      public abstract Task<WoTReply> AddAction(WoTThingAction action);
+      public abstract Task<WoTReply> RemoveAction(string name);
+      public abstract Task<WoTReply> AddEvent(WoTThingEvent thingEvent);
+      public abstract Task<WoTReply> RemoveEvent(string name);
 
-      public abstract Task<WoTError> SetPropertyReadHandler(string name, WoTPropertyReadHandler readHandler);
-      public abstract Task<WoTError> SetPropertyWriteHandler(string name, WoTPropertyWriteHandler writeHandler);
-      public abstract Task<WoTError> SetActionHandler(string name, WoTActionHandler action);
+      public abstract Task<WoTReply> SetPropertyReadHandler(string name, WoTPropertyReadHandler readHandler);
+      public abstract Task<WoTReply> SetPropertyWriteHandler(string name, WoTPropertyWriteHandler writeHandler);
+      public abstract Task<WoTReply> SetActionHandler(string name, WoTActionHandler action);
    }
 }

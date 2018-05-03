@@ -7,9 +7,9 @@ namespace WebOfThings {
       public abstract string Name { get; }
       public abstract WoTThingDescription GetThingDescription();
 
-      public abstract Task<dynamic> ReadProperty(string name);
+      public abstract Task<WoTReply> ReadProperty(string name);
       public abstract Task WriteProperty(string name, dynamic value);
-      public abstract Task<dynamic> InvokeAction(string name, dynamic parameters);
+      public abstract Task<WoTReply> InvokeAction(string name, dynamic parameters);
 
       public abstract WoTObservable OnPropertyChange(string name);
       public abstract WoTObservable OnEvent(string name);

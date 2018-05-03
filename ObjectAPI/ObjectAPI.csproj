@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ObjectActor.Interfaces\ObjectActor.Interfaces.csproj" />
+    <ProjectReference Include="..\WebOfThings\WebOfThings.csproj" />
   </ItemGroup>
 
 </Project>
