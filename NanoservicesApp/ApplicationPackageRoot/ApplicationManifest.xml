@@ -1,11 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ApplicationManifest ApplicationTypeName="NanoservicesAppType"
-                     ApplicationTypeVersion="1.0.0"
-                     xmlns="http://schemas.microsoft.com/2011/01/fabric"
-                     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<ApplicationManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ApplicationTypeName="NanoservicesAppType" ApplicationTypeVersion="1.0.0" xmlns="http://schemas.microsoft.com/2011/01/fabric">
   <Parameters>
     <Parameter Name="ObjectAPI_InstanceCount" DefaultValue="-1" />
+    <Parameter Name="ObjectActor_PartitionCount" DefaultValue="10" />
+    <Parameter Name="ObjectActor_MinReplicaSetSize" DefaultValue="3" />
+    <Parameter Name="ObjectActor_TargetReplicaSetSize" DefaultValue="3" />
   </Parameters>
   <!-- Import the ServiceManifest from the ServicePackage. The ServiceManifestName and ServiceManifestVersion 
        should match the Name and Version attributes of the ServiceManifest element defined in the 
@@ -27,6 +26,11 @@
       <StatelessService ServiceTypeName="ObjectAPIType" InstanceCount="[ObjectAPI_InstanceCount]">
         <SingletonPartition />
       </StatelessService>
+    </Service>
+    <Service Name="ObjectActor" GeneratedIdRef="2472fbbf-3ee8-4266-a9b7-a88c4a7338c1|Persisted">
+      <StatefulService ServiceTypeName="ObjectActorType" TargetReplicaSetSize="[ObjectActor_TargetReplicaSetSize]" MinReplicaSetSize="[ObjectActor_MinReplicaSetSize]">
+        <UniformInt64Partition PartitionCount="[ObjectActor_PartitionCount]" LowKey="-9223372036854775808" HighKey="9223372036854775807" />
+      </StatefulService>
     </Service>
   </DefaultServices>
 </ApplicationManifest>

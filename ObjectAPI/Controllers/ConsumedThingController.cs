@@ -3,6 +3,7 @@ using Microsoft.ServiceFabric.Actors;
 using Microsoft.ServiceFabric.Actors.Client;
 using Newtonsoft.Json;
 using ObjectActor.Interfaces;
+using ObjectAPI.DataStructures;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,6 +51,20 @@ namespace ObjectAPI.Controllers {
 
       [HttpPost("action/{name}")]
       public async Task<IActionResult> InvokeActionAsync(string id, string name, dynamic parameters) {
+         var actor = ActorProxy.Create<IObjectActor>(
+            new ActorId(id),
+            ObjectService.Name.ToServiceUri()
+         );
+
+         var potentialError = await actor.InvokeActionAsync(name, JsonConvert.SerializeObject(parameters));
+
+         // TODO: Send a different action result depending on the presence, and type, of the error.
+         return Ok(potentialError);
+      }
+
+      // Note: Mostly syntactic sugar
+      [HttpPost("action")]
+      public async Task<IActionResult> InvokeAnonymousActionAsync(string id, AnonymousAction action) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()

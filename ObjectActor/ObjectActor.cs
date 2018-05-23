@@ -176,7 +176,7 @@ namespace ObjectActor {
       /* IWoTConsumedThing */
       public async Task<string> GetNameAsync() {
          // TODO: Return the proper name.
-         return null;
+         return await Task.FromResult<string>(null);
       }
 
       public Task<WoTThingDescription> GetThingDescriptionAsync() {
@@ -199,7 +199,11 @@ namespace ObjectActor {
                _Client.DefaultRequestHeaders.Accept.Clear();
                _Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-               var response = await _Client.GetAsync(desiredPropertyReadHandler.Value.Address);
+               var response = await _Client.PostAsync(
+                  desiredPropertyReadHandler.Value.Address,
+                  // Note: Here we are assuming that "desiredProperty.Value.Value" is of type string. A better check
+                  // need to be performed, or a different approach should be used.
+                  new StringContent(desiredProperty.Value.Value, Encoding.UTF8, "application/json"));
 
                if (response.IsSuccessStatusCode) {
                   reply.Type = WoTReplyType.RawResult;
@@ -243,11 +247,13 @@ namespace ObjectActor {
                   desiredPropertyWriteHandler.Value.Address,
                   // Note: Here we are assuming that "value" is of type string. A better check need to be performed,
                   // or a different approach should be used.
-                  new StringContent(value, Encoding.UTF8, "application/json")
+                  new StringContent($@"{{old: {desiredProperty.Value.Value}, new: {value}}}", Encoding.UTF8, "application/json")
                );
 
                if (response.IsSuccessStatusCode) {
                   reply.Type = WoTReplyType.Success;
+                  desiredProperty.Value.Value = await response.Content.ReadAsStringAsync();
+                  await this.StateManager.SetStateAsync(PropertyPrefix + name, desiredProperty.Value);
                } else {
                   reply.Type = WoTReplyType.Error;
                   reply.Error = new WoTError("The specified property couldn't be written.");

@@ -1,9 +1,11 @@
-﻿using System;
+﻿using Microsoft.ServiceFabric.Actors;
+using System;
 using System.Threading.Tasks;
+using WebOfThings;
 
-namespace WebOfThings {
-   // Source: https://w3c.github.io/wot-scripting-api/#dom-consumedthing
-   public interface IWoTConsumedThing {
+namespace ObjectActor.Interfaces {
+   // Based on the WoTConsumedThing class inside the WebOfThings project.
+   public interface IWoTConsumedThing : IActor {
       Task<string> GetNameAsync();
       Task<WoTThingDescription> GetThingDescriptionAsync();
 
