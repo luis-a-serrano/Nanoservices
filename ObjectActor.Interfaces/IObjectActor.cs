@@ -11,17 +11,15 @@ using WebOfThings;
 [assembly: FabricTransportActorRemotingProvider(RemotingListener = RemotingListener.V2Listener, RemotingClient = RemotingClient.V2Client)]
 namespace ObjectActor.Interfaces {
 
-   public interface IObjectActor: IActor, IWoTExposedThing {
-      //Task<string> ConstructInstanceAsync();
-      //Task<bool> DestroyInstanceAsync();
+   public interface IObjectActor: IActor {
+      Task<WoTReply> AddPropertyAsync(WoTThingProperty property);
 
-      //Task<bool> DefinePropertyAsync(string name, PropertyDescriptor property, bool overwrite);
-      //Task<bool> ErasePropertyAsync(string name);
-      //Task<string> GetPropertyValueAsync(string name);
-      //Task SetPropertyValueAsync(string name, string value);
+      Task<WoTReply> SetPropertyReadHandlerAsync(string name, WoTPropertyReadHandler readHandler);
+      Task<WoTReply> SetPropertyWriteHandlerAsync(string name, WoTPropertyWriteHandler writeHandler);
 
-      //Task<bool> DefineMethodAsync(string name, string source, bool overwrite);
-      //Task<bool> EraseMethodAsync(string name);
-      //Task ExecuteMethodAsync(string name);
+      Task<WoTReply> ReadPropertyAsync(string name);
+      Task<WoTReply> WritePropertyAsync(string name, dynamic value);
+
+      Task<WoTReply> InvokeAnonymousActionAsync(string rawAction);
    }
 }
