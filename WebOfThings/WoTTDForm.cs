@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace WebOfThings {
-   // TODO: Work on the structure.
    // TODO: Add the neccessary tags for it to serialize correctly (proper names and casing).
-   public class WoTThingDescription {
-      public Dictionary<string, string> Properties { get; set; }
+   // Source: https://w3c.github.io/wot-thing-description/#form
+   public class WoTTDForm {
+      public Uri Href { get; set; }
+      public string MediaType { get; set; } = @"application/json";
    }
 }

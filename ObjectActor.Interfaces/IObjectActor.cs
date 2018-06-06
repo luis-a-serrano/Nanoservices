@@ -12,16 +12,6 @@ using WebOfThings;
 namespace ObjectActor.Interfaces {
 
    public interface IObjectActor: IActor, IWoTExposedThing {
-      //Task<string> ConstructInstanceAsync();
-      //Task<bool> DestroyInstanceAsync();
-
-      //Task<bool> DefinePropertyAsync(string name, PropertyDescriptor property, bool overwrite);
-      //Task<bool> ErasePropertyAsync(string name);
-      //Task<string> GetPropertyValueAsync(string name);
-      //Task SetPropertyValueAsync(string name, string value);
-
-      //Task<bool> DefineMethodAsync(string name, string source, bool overwrite);
-      //Task<bool> EraseMethodAsync(string name);
-      //Task ExecuteMethodAsync(string name);
+      Task<WoTReply> InvokeAnonymousActionAsync(string rawAction);
    }
 }

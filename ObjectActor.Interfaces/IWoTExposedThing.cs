@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using WebOfThings;
 
-namespace WebOfThings {
-   // Source: https://w3c.github.io/wot-scripting-api/#the-exposedthing-interface
+namespace ObjectActor.Interfaces {
+   // Based on the WoTConsumedThing class inside the WebOfThings project.
    public interface IWoTExposedThing: IWoTConsumedThing {
       Task StartAsync();
       Task StopAsync();
-      Task RegisterAsync(string directory = null);
-      Task UnregisterAsync(string directory = null);
+      Task RegisterAsync(string directory);
+      Task UnregisterAsync(string directory);
       Task EmitEventAsync(string eventName, dynamic payload);
 
       Task<WoTReply> AddPropertyAsync(WoTThingProperty property);

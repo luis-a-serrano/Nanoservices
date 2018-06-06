@@ -14,6 +14,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace ObjectActor {
 
@@ -29,6 +31,9 @@ namespace ObjectActor {
 
       private const string ActionPrefix = "A:";
       private const string ActionHandlerPrefix = "AH:";
+
+      private const string PropertySubstitutionRegexGroupName = "propertyName";
+      private static readonly Regex PropertySubstitutionRegex = new Regex($@"(?<delimeter>[""'])#(?<{PropertySubstitutionRegexGroupName}>\w+)#\k<delimeter>");
 
       private readonly HttpClient _Client = new HttpClient();
 
@@ -176,7 +181,7 @@ namespace ObjectActor {
       /* IWoTConsumedThing */
       public async Task<string> GetNameAsync() {
          // TODO: Return the proper name.
-         return null;
+         return await Task.FromResult<string>(null);
       }
 
       public Task<WoTThingDescription> GetThingDescriptionAsync() {
@@ -199,7 +204,11 @@ namespace ObjectActor {
                _Client.DefaultRequestHeaders.Accept.Clear();
                _Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-               var response = await _Client.GetAsync(desiredPropertyReadHandler.Value.Address);
+               var response = await _Client.PostAsync(
+                  desiredPropertyReadHandler.Value.Address,
+                  // Note: Here we are assuming that "desiredProperty.Value.Value" is of type string. A better check
+                  // need to be performed, or a different approach should be used.
+                  new StringContent(desiredProperty.Value.Value, Encoding.UTF8, "application/json"));
 
                if (response.IsSuccessStatusCode) {
                   reply.Type = WoTReplyType.RawResult;
@@ -243,11 +252,13 @@ namespace ObjectActor {
                   desiredPropertyWriteHandler.Value.Address,
                   // Note: Here we are assuming that "value" is of type string. A better check need to be performed,
                   // or a different approach should be used.
-                  new StringContent(value, Encoding.UTF8, "application/json")
+                  new StringContent($@"{{old: {desiredProperty.Value.Value}, new: {value}}}", Encoding.UTF8, "application/json")
                );
 
                if (response.IsSuccessStatusCode) {
                   reply.Type = WoTReplyType.Success;
+                  desiredProperty.Value.Value = await response.Content.ReadAsStringAsync();
+                  await this.StateManager.SetStateAsync(PropertyPrefix + name, desiredProperty.Value);
                } else {
                   reply.Type = WoTReplyType.Error;
                   reply.Error = new WoTError("The specified property couldn't be written.");
@@ -325,6 +336,88 @@ namespace ObjectActor {
          // TODO: This will probably require talking to EventGrid to the the subscription part of
          // the observables.
          throw new NotImplementedException();
+      }
+
+      /* Other */
+      public async Task<WoTReply> InvokeAnonymousActionAsync(string rawAction) {
+         var reply = new WoTReply();
+
+         var matches = ObjectActor.PropertySubstitutionRegex.Matches(rawAction);
+         var cachedProperties = new Dictionary<string, WoTThingProperty>();
+
+         foreach (Match match in matches) {
+            var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value ?? String.Empty;
+
+            if (!cachedProperties.ContainsKey(potentialPropertyName)) {
+               var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + potentialPropertyName);
+               if (desiredProperty.HasValue) {
+                  cachedProperties[potentialPropertyName] = desiredProperty.Value;
+               }
+            }
+         }
+
+         var injectedAction = ObjectActor.PropertySubstitutionRegex.Replace(rawAction, (match) => {
+            var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value ?? String.Empty;
+
+            if (cachedProperties.TryGetValue(potentialPropertyName, out var property)) {
+               return JsonConvert.SerializeObject(property.Value);
+            } else {
+               return match.Value;
+            }
+         });
+
+         var anonymusAction = JObject.Parse(injectedAction);
+
+         var targetUri = anonymusAction?[nameof(AnonymousAction.Address)]?.ToString();
+         var injectedPayload = anonymusAction?[nameof(AnonymousAction.Payload)]?.ToString() ?? String.Empty;
+
+         if (!String.IsNullOrWhiteSpace(targetUri)) {
+            // Note: We should allow the user to provide additional details for the request if these are needed.
+            _Client.DefaultRequestHeaders.Accept.Clear();
+            _Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var response = await _Client.PostAsync(
+               targetUri,
+               // Note: Here we are assuming that "value" is of type string. A better check need to be performed,
+               // or a different approach should be used.
+               new StringContent(injectedPayload, Encoding.UTF8, "application/json")
+            );
+
+            if (response.IsSuccessStatusCode) {
+               var responseContent = JsonConvert.DeserializeObject<ActionResponse>(await response.Content.ReadAsStringAsync());
+
+               foreach (var updatedProperty in responseContent.Updates) {
+                  WoTThingProperty property;
+                  if (!cachedProperties.TryGetValue(updatedProperty.Key, out property)) {
+                     var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + updatedProperty.Key);
+
+                     if (desiredProperty.HasValue) {
+                        property = desiredProperty.Value;
+                     } else {
+                        continue;
+                     }
+                  }
+
+                  property.Value = updatedProperty.Value;
+                  await this.StateManager.SetStateAsync(PropertyPrefix + updatedProperty.Key, property);
+               }
+
+               reply.Type = WoTReplyType.Result;
+               reply.Result = new WoTResult {
+                  Type = WoTDataType.Unknown,
+                  Value = responseContent.Result
+               };
+
+            } else {
+               reply.Type = WoTReplyType.Error;
+               reply.Error = new WoTError("The request to the specified API was not successful.");
+            }
+         } else {
+            reply.Type = WoTReplyType.Error;
+            reply.Error = new WoTError("No valid address was specified for the remote API.");
+         }
+
+         return reply;
       }
    }
 

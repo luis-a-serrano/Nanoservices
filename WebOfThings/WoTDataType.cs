@@ -4,6 +4,7 @@ using System.Text;
 
 namespace WebOfThings {
    public enum WoTDataType {
+      Unknown,
       Boolean,
       Integer,
       Number,
