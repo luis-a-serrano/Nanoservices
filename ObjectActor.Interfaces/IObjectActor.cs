@@ -11,5 +11,7 @@ using WebOfThings;
 [assembly: FabricTransportActorRemotingProvider(RemotingListener = RemotingListener.V2Listener, RemotingClient = RemotingClient.V2Client)]
 namespace ObjectActor.Interfaces {
 
-   public interface IObjectActor: IActor, IWoTExposedThing { }
+   public interface IObjectActor: IActor, IWoTExposedThing {
+      Task<WoTReply> InvokeAnonymousActionAsync(string rawAction);
+   }
 }
