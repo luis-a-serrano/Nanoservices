@@ -92,8 +92,6 @@ namespace ObjectAPI.Controllers {
             };
             replies.Add(_Client.PostAsync(
                   $"api/ObjectActor/{neighbor}/action", //~~
-                  // Note: Here we are assuming that "desiredProperty.Value.Value" is of type string. A better check
-                  // need to be performed, or a different approach should be used.
                   new StringContent(JsonConvert.SerializeObject(message), Encoding.UTF8, "application/json")));
          }
 

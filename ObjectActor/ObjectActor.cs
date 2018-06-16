@@ -150,8 +150,8 @@ namespace ObjectActor {
 
                var response = await _Client.PostAsync(
                   desiredPropertyWriteHandler.Value.Address,
-                  // Note: Here we are assuming that "value" is of type string. A better check need to be performed,
-                  // or a different approach should be used.
+                  // Note: Here we are assuming that "desiredProperty.Value.Value" and "value" is of type string.
+                  // A better check need to be performed, or a different approach should be used.
                   new StringContent($@"{{old: {desiredProperty.Value.Value}, new: {value}}}", Encoding.UTF8, "application/json")
                );
 
@@ -181,13 +181,13 @@ namespace ObjectActor {
       public async Task<WoTReply> InvokeAnonymousActionAsync(string rawAction) {
          var reply = new WoTReply();
 
-         var matches = ObjectActor.PropertySubstitutionRegex.Matches(rawAction);
+         var matches = PropertySubstitutionRegex.Matches(rawAction);
          var cachedProperties = new Dictionary<string, WoTThingProperty>();
 
          foreach (Match match in matches) {
-            var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value ?? String.Empty;
+            var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value;
 
-            if (!cachedProperties.ContainsKey(potentialPropertyName)) {
+            if (!String.IsNullOrWhiteSpace(potentialPropertyName) && !cachedProperties.ContainsKey(potentialPropertyName)) {
                var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + potentialPropertyName);
                if (desiredProperty.HasValue) {
                   cachedProperties[potentialPropertyName] = desiredProperty.Value;
@@ -195,7 +195,7 @@ namespace ObjectActor {
             }
          }
 
-         var injectedAction = ObjectActor.PropertySubstitutionRegex.Replace(rawAction, (match) => {
+         var injectedAction = PropertySubstitutionRegex.Replace(rawAction, (match) => {
             var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value ?? String.Empty;
 
             if (cachedProperties.TryGetValue(potentialPropertyName, out var property)) {
@@ -226,8 +226,7 @@ namespace ObjectActor {
                var responseContent = JsonConvert.DeserializeObject<ActionResponse>(await response.Content.ReadAsStringAsync());
 
                foreach (var updatedProperty in responseContent.Updates) {
-                  WoTThingProperty property;
-                  if (!cachedProperties.TryGetValue(updatedProperty.Key, out property)) {
+                  if (!cachedProperties.TryGetValue(updatedProperty.Key, out var property)) {
                      var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + updatedProperty.Key);
 
                      if (desiredProperty.HasValue) {

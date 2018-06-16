@@ -1,0 +1,60 @@
+﻿/* Vertical Tabs */
+.tabs-left, .tabs-right {
+   border-bottom: none;
+   padding-top: 2px;
+}
+
+.tabs-left {
+   border-right: 1px solid #ddd;
+}
+
+.tabs-right {
+   border-left: 1px solid #ddd;
+}
+
+.tabs-left > .nav-link, .tabs-right > .nav-link {
+   float: none;
+   margin-bottom: 2px;
+}
+
+.tabs-left > .nav-link {
+   margin-right: -1px;
+}
+
+.tabs-right > .nav-link {
+   margin-left: -1px;
+}
+
+.tabs-left > a.nav-link.active,
+.tabs-left > a.nav-link.active:hover,
+.tabs-left > a.nav-link.active:focus {
+   border-bottom-color: #ddd;
+   border-right-color: transparent;
+}
+
+.tabs-right > a.nav-link.active,
+.tabs-right > a.nav-link.active:hover,
+.tabs-right > a.nav-link.active:focus {
+   border-bottom: 1px solid #ddd;
+   border-left-color: transparent;
+}
+
+.tabs-left > a.nav-link {
+   border-radius: 4px 0 0 4px;
+   margin-right: 0;
+   display: block;
+}
+
+.tabs-right > a.nav-link {
+   border-radius: 0 4px 4px 0;
+   margin-right: 0;
+}
+
+/* Fixes */
+.fix-1 {
+   padding-right: 0;
+}
+
+.fix-2 {
+   padding-left: 0;
+}
