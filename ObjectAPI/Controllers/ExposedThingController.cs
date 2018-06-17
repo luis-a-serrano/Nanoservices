@@ -13,11 +13,13 @@ namespace ObjectAPI.Controllers {
    public class ExposedThingController: Controller {
 
       [HttpPost("start")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> StartAsync(string id) {
          throw new NotImplementedException();
       }
 
       [HttpPost("stop")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> StopAsync(string id) {
          throw new NotImplementedException();
       }
@@ -25,6 +27,7 @@ namespace ObjectAPI.Controllers {
       // Note: The directory information should probably be read from the request body
       // instead.
       [HttpPost("register/{directory}")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> RegisterAsync(string id, string directory = null) {
          throw new NotImplementedException();
       }
@@ -32,6 +35,7 @@ namespace ObjectAPI.Controllers {
       // Note: The directory information should probably be read from the request body
       // instead.
       [HttpPost("unregister/{directory}")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> UnregisterAsync(string id) {
          throw new NotImplementedException();
       }
@@ -40,12 +44,13 @@ namespace ObjectAPI.Controllers {
       // the body. However, this requires us to capture the body as a raw data/string and
       // forward it.
       [HttpPost("emit/{name}/{payload}")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> EmitEventAsync(string id, string name, dynamic payload) {
          throw new NotImplementedException();
       }
 
       [HttpPost("add-property")]
-      public async Task<IActionResult> AddPropertyAsync(string id, WoTThingProperty property) {
+      public async Task<IActionResult> AddPropertyAsync(string id, [FromBody] WoTThingProperty property) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -77,7 +82,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPost("add-action")]
-      public async Task<IActionResult> AddActionAsync(string id, WoTThingAction action) {
+      public async Task<IActionResult> AddActionAsync(string id, [FromBody] WoTThingAction action) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -110,17 +115,19 @@ namespace ObjectAPI.Controllers {
 
       // Note: The event details should be captured from the request body.
       [HttpPost("add-event")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> AddEventAsync(string id) {
          throw new NotImplementedException();
       }
 
       [HttpDelete("remove-event/{name}")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> RemoveEventAsync(string id, string name) {
          throw new NotImplementedException();
       }
 
       [HttpPut("set-property-read-handler/{propertyName}")]
-      public async Task<IActionResult> SetPropertyReadHandlerAsync(string id, string propertyName, WoTPropertyReadHandler readHandler) {
+      public async Task<IActionResult> SetPropertyReadHandlerAsync(string id, string propertyName, [FromBody] WoTPropertyReadHandler readHandler) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -133,7 +140,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPut("set-property-write-handler/{propertyName}")]
-      public async Task<IActionResult> SetPropertyWriteHandlerAsync(string id, string propertyName, WoTPropertyWriteHandler writeHandler) {
+      public async Task<IActionResult> SetPropertyWriteHandlerAsync(string id, string propertyName, [FromBody] WoTPropertyWriteHandler writeHandler) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -146,7 +153,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPut("set-action-handler/{actionName}")]
-      public async Task<IActionResult> SetActionHandlerAsync(string id, string actionName, WoTActionHandler actionHandler) {
+      public async Task<IActionResult> SetActionHandlerAsync(string id, string actionName, [FromBody] WoTActionHandler actionHandler) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()

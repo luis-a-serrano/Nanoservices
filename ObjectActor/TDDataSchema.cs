@@ -45,7 +45,7 @@ namespace ObjectActor.Interfaces {
                   foreach (var child in pairs[current].Children()) {
                      // Note: A second Validate method needs to be created that doesn't use the
                      // name of the property to explore as a second argument.
-                     valid = valid & Validate(child);
+                     //valid = valid & Validate(child);
                   }
                }
                break;

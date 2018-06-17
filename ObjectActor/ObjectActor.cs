@@ -346,9 +346,9 @@ namespace ObjectActor {
          var cachedProperties = new Dictionary<string, WoTThingProperty>();
 
          foreach (Match match in matches) {
-            var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value ?? String.Empty;
+            var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value;
 
-            if (!cachedProperties.ContainsKey(potentialPropertyName)) {
+            if (!String.IsNullOrWhiteSpace(potentialPropertyName) && !cachedProperties.ContainsKey(potentialPropertyName)) {
                var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + potentialPropertyName);
                if (desiredProperty.HasValue) {
                   cachedProperties[potentialPropertyName] = desiredProperty.Value;
@@ -368,8 +368,8 @@ namespace ObjectActor {
 
          var anonymusAction = JObject.Parse(injectedAction);
 
-         var targetUri = anonymusAction?[nameof(AnonymousAction.Address)]?.ToString();
-         var injectedPayload = anonymusAction?[nameof(AnonymousAction.Payload)]?.ToString() ?? String.Empty;
+         var targetUri = anonymusAction?[nameof(AnonymousAction.Address).ToCamelCase()]?.ToString();
+         var injectedPayload = anonymusAction?[nameof(AnonymousAction.Payload).ToCamelCase()]?.ToString() ?? String.Empty;
 
          if (!String.IsNullOrWhiteSpace(targetUri)) {
             // Note: We should allow the user to provide additional details for the request if these are needed.

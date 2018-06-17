@@ -14,11 +14,13 @@ namespace ObjectAPI.Controllers {
    public class ConsumedThingController: Controller {
 
       [HttpGet("name")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> GetNameAsync(string id) {
          throw new NotImplementedException();
       }
 
       [HttpGet("td")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> GetThingDescriptionAsync(string id) {
          throw new NotImplementedException();
       }
@@ -37,7 +39,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPut("property/{name}")]
-      public async Task<IActionResult> WritePropertyAsync(string id, string name, dynamic value) {
+      public async Task<IActionResult> WritePropertyAsync(string id, string name, [FromBody] dynamic value) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -50,7 +52,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPost("action/{name}")]
-      public async Task<IActionResult> InvokeActionAsync(string id, string name, dynamic parameters) {
+      public async Task<IActionResult> InvokeActionAsync(string id, string name, [FromBody] dynamic parameters) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -78,16 +80,19 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPost("on-property-change/{name}")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> OnPropertyChangeAsync(string id, string name) {
          throw new NotImplementedException();
       }
 
       [HttpPost("on-td-change")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> OnTDChangeAsync(string id) {
          throw new NotImplementedException();
       }
 
       [HttpPost("on-event/{name}")]
+      [ApiExplorerSettings(IgnoreApi = true)]
       public Task<IActionResult> OnEventAsync(string id, string name) {
          throw new NotImplementedException();
       }
