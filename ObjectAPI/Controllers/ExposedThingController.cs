@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WebOfThings;
 using ObjectActor.Interfaces;
 using Microsoft.ServiceFabric.Actors;
+using System.Fabric;
 
 namespace ObjectAPI.Controllers {
    [Route("api/[controller]/{id}")]
@@ -62,7 +63,7 @@ namespace ObjectAPI.Controllers {
          // TODO: Send a different action result depending on the presence, and type, of the error.
          return CreatedAtAction(
             nameof(ConsumedThingController.ReadPropertyAsync),
-            nameof(ConsumedThingController),
+            nameof(ConsumedThingController).AsControllerName(),
             new { id, name = property.Name },
             property
          );
@@ -94,7 +95,7 @@ namespace ObjectAPI.Controllers {
          // TODO: Send a different action result depending on the presence, and type, of the error.
          return CreatedAtAction(
             nameof(ConsumedThingController.InvokeActionAsync),
-            nameof(ConsumedThingController),
+            nameof(ConsumedThingController).AsControllerName(),
             new { id, name = action.Name },
             action
          );

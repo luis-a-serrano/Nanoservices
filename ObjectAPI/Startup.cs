@@ -22,7 +22,7 @@ namespace ObjectAPI {
       public void ConfigureServices(IServiceCollection services) {
          services.AddMvc();
          services.AddSwaggerGen(gen => {
-            gen.SwaggerDoc("v1", new Info { Title = "Partial API", Version = "1.0" });
+            gen.SwaggerDoc("v1", new Info { Title = "Nanoservice API", Version = "1.0" });
          });
       }
 
@@ -35,7 +35,7 @@ namespace ObjectAPI {
          app.UseMvc();
          app.UseSwagger();
          app.UseSwaggerUI(ui => {
-            ui.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+            ui.SwaggerEndpoint("/swagger/v1/swagger.json", "v1.0");
          });
       }
    }
