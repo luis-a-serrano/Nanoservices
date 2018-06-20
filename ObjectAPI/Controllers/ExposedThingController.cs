@@ -1,13 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.ServiceFabric.Actors;
 using Microsoft.ServiceFabric.Actors.Client;
+using ObjectActor.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using WebOfThings;
-using ObjectActor.Interfaces;
-using Microsoft.ServiceFabric.Actors;
-using System.Fabric;
 
 namespace ObjectAPI.Controllers {
    [Route("api/[controller]/{id}")]
@@ -15,62 +13,73 @@ namespace ObjectAPI.Controllers {
 
       [HttpPost("start")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> StartAsync(string id) {
+      public Task<IActionResult> StartAsync([FromRoute] string id) {
          throw new NotImplementedException();
       }
 
       [HttpPost("stop")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> StopAsync(string id) {
+      public Task<IActionResult> StopAsync([FromRoute] string id) {
          throw new NotImplementedException();
       }
 
-      // Note: The directory information should probably be read from the request body
-      // instead.
-      [HttpPost("register/{directory}")]
+      [HttpPost("register")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> RegisterAsync(string id, string directory = null) {
+      public Task<IActionResult> RegisterAsync([FromRoute] string id, [FromBody] string directory) {
          throw new NotImplementedException();
       }
 
-      // Note: The directory information should probably be read from the request body
-      // instead.
-      [HttpPost("unregister/{directory}")]
+      [HttpPost("unregister")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> UnregisterAsync(string id) {
+      public Task<IActionResult> UnregisterAsync([FromRoute] string id, [FromBody] string directory) {
          throw new NotImplementedException();
       }
 
-      // Note: Passing payload to this one might be too much so it probably should come from
-      // the body. However, this requires us to capture the body as a raw data/string and
-      // forward it.
-      [HttpPost("emit/{name}/{payload}")]
+      [HttpPost("emit/{name}")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> EmitEventAsync(string id, string name, dynamic payload) {
+      public Task<IActionResult> EmitEventAsync([FromRoute] string id, [FromRoute] string name, [FromBody] dynamic payload) {
          throw new NotImplementedException();
       }
 
       [HttpPost("add-property")]
-      public async Task<IActionResult> AddPropertyAsync(string id, [FromBody] WoTThingProperty property) {
-         var actor = ActorProxy.Create<IObjectActor>(
-            new ActorId(id),
-            ObjectService.Name.ToServiceUri()
-         );
+      [Produces("application/json")]
+      [ProducesResponseType(typeof(WoTThingProperty), StatusCodes.Status201Created)]
+      [ProducesResponseType(typeof(WoTError), StatusCodes.Status400BadRequest)]
+      [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+      public async Task<IActionResult> AddPropertyAsync([FromRoute] string id, [FromBody] WoTThingProperty property) {
+         var actor = ActorProxy.Create<IObjectActor>( new ActorId(id) );
+         //var actor = ActorProxy.Create<IObjectActor>(
+         //   new ActorId(id),
+         //   ObjectService.Name.ToServiceUri()
+         //);
 
-         // TODO: Validate the "property" parameter.
          var potentialError = await actor.AddPropertyAsync(property);
 
+         switch (potentialError.Type) {
+            case WoTReplyType.Error:
+               return BadRequest(potentialError.Error);
+            case WoTReplyType.Success:
+               return CreatedAtAction(
+                  nameof(ConsumedThingController.ReadPropertyAsync),
+                  nameof(ConsumedThingController).AsControllerName(),
+                  new { id, name = property.Name },
+                  property
+               );
+            default:
+               return StatusCode(StatusCodes.Status500InternalServerError, "Unexpected response from the object.");
+         }
+
          // TODO: Send a different action result depending on the presence, and type, of the error.
-         return CreatedAtAction(
-            nameof(ConsumedThingController.ReadPropertyAsync),
-            nameof(ConsumedThingController).AsControllerName(),
-            new { id, name = property.Name },
-            property
-         );
+         //return CreatedAtAction(
+         //   nameof(ConsumedThingController.ReadPropertyAsync),
+         //   nameof(ConsumedThingController).AsControllerName(),
+         //   new { id, name = property.Name },
+         //   property
+         //);
       }
 
       [HttpDelete("remove-property/{name}")]
-      public async Task<IActionResult> RemovePropertyAsync(string id, string name) {
+      public async Task<IActionResult> RemovePropertyAsync([FromRoute] string id, [FromRoute] string name) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -83,7 +92,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPost("add-action")]
-      public async Task<IActionResult> AddActionAsync(string id, [FromBody] WoTThingAction action) {
+      public async Task<IActionResult> AddActionAsync([FromRoute] string id, [FromBody] WoTThingAction action) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -102,7 +111,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpDelete("remove-action/{name}")]
-      public async Task<IActionResult> RemoveActionAsync(string id, string name) {
+      public async Task<IActionResult> RemoveActionAsync([FromRoute] string id, [FromRoute] string name) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -117,18 +126,18 @@ namespace ObjectAPI.Controllers {
       // Note: The event details should be captured from the request body.
       [HttpPost("add-event")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> AddEventAsync(string id) {
+      public Task<IActionResult> AddEventAsync([FromRoute] string id) {
          throw new NotImplementedException();
       }
 
       [HttpDelete("remove-event/{name}")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> RemoveEventAsync(string id, string name) {
+      public Task<IActionResult> RemoveEventAsync([FromRoute] string id, [FromRoute] string name) {
          throw new NotImplementedException();
       }
 
       [HttpPut("set-property-read-handler/{propertyName}")]
-      public async Task<IActionResult> SetPropertyReadHandlerAsync(string id, string propertyName, [FromBody] WoTPropertyReadHandler readHandler) {
+      public async Task<IActionResult> SetPropertyReadHandlerAsync([FromRoute] string id, [FromRoute] string propertyName, [FromBody] WoTPropertyReadHandler readHandler) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -141,7 +150,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPut("set-property-write-handler/{propertyName}")]
-      public async Task<IActionResult> SetPropertyWriteHandlerAsync(string id, string propertyName, [FromBody] WoTPropertyWriteHandler writeHandler) {
+      public async Task<IActionResult> SetPropertyWriteHandlerAsync([FromRoute] string id, [FromRoute] string propertyName, [FromBody] WoTPropertyWriteHandler writeHandler) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -154,7 +163,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPut("set-action-handler/{actionName}")]
-      public async Task<IActionResult> SetActionHandlerAsync(string id, string actionName, [FromBody] WoTActionHandler actionHandler) {
+      public async Task<IActionResult> SetActionHandlerAsync([FromRoute] string id, [FromRoute] string actionName, [FromBody] WoTActionHandler actionHandler) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()

@@ -1,21 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.ServiceFabric.Actors;
+﻿using Microsoft.ServiceFabric.Actors;
 using Microsoft.ServiceFabric.Actors.Runtime;
-using Microsoft.ServiceFabric.Actors.Client;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using ObjectActor.Interfaces;
-using WebOfThings;
-using System.Net;
-using Microsoft.ServiceFabric.Data;
+using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
-using Newtonsoft.Json;
+using System.Threading.Tasks;
+using WebOfThings;
 
 namespace ObjectActor {
 
@@ -23,11 +18,13 @@ namespace ObjectActor {
    [StatePersistence(StatePersistence.Persisted)]
    internal class ObjectActor: Actor, IObjectActor {
 
-      // TODO: Modify names for private consts.
       // TODO: Capture all exceptions and send them back as errors.
-      private const string PropertyPrefix = "P:";
-      private const string PropertyReadHandlerPrefix = "PRH:";
-      private const string PropertyWriteHandlerPrefix = "PWH:";
+
+      private const string Prefix_PropertyDescription = "P:";
+      private const string Prefix_PropertyReadHandler = "PRH:";
+      private const string Prefix_PropertyWriteHandler = "PWH:";
+
+      private static readonly Regex Regex_PropertyName = new Regex(@"^\w+$");
 
       private const string ActionPrefix = "A:";
       private const string ActionHandlerPrefix = "AH:";
@@ -67,14 +64,29 @@ namespace ObjectActor {
          throw new NotImplementedException();
       }
 
-
       public async Task<WoTReply> AddPropertyAsync(WoTThingProperty property) {
          var reply = new WoTReply();
-         var addAttempt = await this.StateManager.TryAddStateAsync(PropertyPrefix + property.Name, property);
 
-         if (!addAttempt) {
-            reply.Type = WoTReplyType.Error;
-            reply.Error = new WoTError("A property with the same name already exists.");
+         if (property == null) {
+            reply.SetError("The property description is invalid.");
+         } else {
+            try {
+               if (Regex_PropertyName.IsMatch(property.Name)) {
+                  var addAttempt = await this.StateManager.TryAddStateAsync(Prefix_PropertyDescription + property.Name, property);
+
+                  if (!addAttempt) {
+                     reply.SetError("A property with the same name already exists.");
+                  } else {
+                     reply.Type = WoTReplyType.Success;
+                  }
+               } else {
+                  reply.SetError("The provided property name is invalid.");
+               }
+            } catch (ArgumentNullException) {
+               reply.SetError("No name was provided for the property.");
+            } catch (Exception) {
+               reply.SetError("Unexplained error while adding the property.");
+            }
          }
 
          return reply;
@@ -82,7 +94,7 @@ namespace ObjectActor {
 
       public async Task<WoTReply> RemovePropertyAsync(string name) {
          var reply = new WoTReply();
-         var removeAttempt = await this.StateManager.TryRemoveStateAsync(PropertyPrefix + name);
+         var removeAttempt = await this.StateManager.TryRemoveStateAsync(Prefix_PropertyDescription + name);
 
          if (!removeAttempt) {
             reply.Type = WoTReplyType.Error;
@@ -131,7 +143,7 @@ namespace ObjectActor {
 
          if (propertyExists) {
             await this.StateManager.AddOrUpdateStateAsync(
-               PropertyReadHandlerPrefix + name, readHandler, (k, v) => readHandler
+               Prefix_PropertyReadHandler + name, readHandler, (k, v) => readHandler
             );
             reply.Type = WoTReplyType.Success;
          } else {
@@ -149,7 +161,7 @@ namespace ObjectActor {
 
          if (propertyExists) {
             await this.StateManager.AddOrUpdateStateAsync(
-               PropertyWriteHandlerPrefix + name, writeHandler, (k, v) => writeHandler
+               Prefix_PropertyWriteHandler + name, writeHandler, (k, v) => writeHandler
             );
             reply.Type = WoTReplyType.Success;
          } else {
@@ -195,8 +207,8 @@ namespace ObjectActor {
       public async Task<WoTReply> ReadPropertyAsync(string name) {
          var reply = new WoTReply();
 
-         var desiredPropertyReadHandler = await this.StateManager.TryGetStateAsync<WoTPropertyReadHandler>(PropertyReadHandlerPrefix + name);
-         var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + name);
+         var desiredPropertyReadHandler = await this.StateManager.TryGetStateAsync<WoTPropertyReadHandler>(Prefix_PropertyReadHandler + name);
+         var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(Prefix_PropertyDescription + name);
 
          if (desiredProperty.HasValue) {
             if (desiredPropertyReadHandler.HasValue) {
@@ -239,8 +251,8 @@ namespace ObjectActor {
       public async Task<WoTReply> WritePropertyAsync(string name, dynamic value) {
          var reply = new WoTReply();
 
-         var desiredPropertyWriteHandler = await this.StateManager.TryGetStateAsync<WoTPropertyWriteHandler>(PropertyWriteHandlerPrefix + name);
-         var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + name);
+         var desiredPropertyWriteHandler = await this.StateManager.TryGetStateAsync<WoTPropertyWriteHandler>(Prefix_PropertyWriteHandler + name);
+         var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(Prefix_PropertyDescription + name);
 
          if (desiredProperty.HasValue) {
             if (desiredPropertyWriteHandler.HasValue) {
@@ -258,7 +270,7 @@ namespace ObjectActor {
                if (response.IsSuccessStatusCode) {
                   reply.Type = WoTReplyType.Success;
                   desiredProperty.Value.Value = await response.Content.ReadAsStringAsync();
-                  await this.StateManager.SetStateAsync(PropertyPrefix + name, desiredProperty.Value);
+                  await this.StateManager.SetStateAsync(Prefix_PropertyDescription + name, desiredProperty.Value);
                } else {
                   reply.Type = WoTReplyType.Error;
                   reply.Error = new WoTError("The specified property couldn't be written.");
@@ -266,7 +278,7 @@ namespace ObjectActor {
 
             } else {
                desiredProperty.Value.Value = value;
-               await this.StateManager.SetStateAsync(PropertyPrefix + name, desiredProperty.Value);
+               await this.StateManager.SetStateAsync(Prefix_PropertyDescription + name, desiredProperty.Value);
 
                reply.Type = WoTReplyType.Success;
             }
@@ -349,7 +361,7 @@ namespace ObjectActor {
             var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value;
 
             if (!String.IsNullOrWhiteSpace(potentialPropertyName) && !cachedProperties.ContainsKey(potentialPropertyName)) {
-               var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + potentialPropertyName);
+               var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(Prefix_PropertyDescription + potentialPropertyName);
                if (desiredProperty.HasValue) {
                   cachedProperties[potentialPropertyName] = desiredProperty.Value;
                }
@@ -389,7 +401,7 @@ namespace ObjectActor {
                foreach (var updatedProperty in responseContent.Updates) {
                   WoTThingProperty property;
                   if (!cachedProperties.TryGetValue(updatedProperty.Key, out property)) {
-                     var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + updatedProperty.Key);
+                     var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(Prefix_PropertyDescription + updatedProperty.Key);
 
                      if (desiredProperty.HasValue) {
                         property = desiredProperty.Value;
@@ -399,7 +411,7 @@ namespace ObjectActor {
                   }
 
                   property.Value = updatedProperty.Value;
-                  await this.StateManager.SetStateAsync(PropertyPrefix + updatedProperty.Key, property);
+                  await this.StateManager.SetStateAsync(Prefix_PropertyDescription + updatedProperty.Key, property);
                }
 
                reply.Type = WoTReplyType.Result;

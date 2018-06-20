@@ -3,10 +3,7 @@ using Microsoft.ServiceFabric.Actors;
 using Microsoft.ServiceFabric.Actors.Client;
 using Newtonsoft.Json;
 using ObjectActor.Interfaces;
-using ObjectAPI.DataStructures;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace ObjectAPI.Controllers {
@@ -15,18 +12,18 @@ namespace ObjectAPI.Controllers {
 
       [HttpGet("name")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> GetNameAsync(string id) {
+      public Task<IActionResult> GetNameAsync([FromRoute] string id) {
          throw new NotImplementedException();
       }
 
       [HttpGet("td")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> GetThingDescriptionAsync(string id) {
+      public Task<IActionResult> GetThingDescriptionAsync([FromRoute] string id) {
          throw new NotImplementedException();
       }
 
       [HttpGet("property/{name}")]
-      public async Task<IActionResult> ReadPropertyAsync(string id, string name) {
+      public async Task<IActionResult> ReadPropertyAsync([FromRoute] string id, [FromRoute] string name) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -39,7 +36,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPut("property/{name}")]
-      public async Task<IActionResult> WritePropertyAsync(string id, string name, [FromBody] dynamic value) {
+      public async Task<IActionResult> WritePropertyAsync([FromRoute] string id, [FromRoute] string name, [FromBody] dynamic value) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -52,7 +49,7 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpPost("action/{name}")]
-      public async Task<IActionResult> InvokeActionAsync(string id, string name, [FromBody] dynamic parameters) {
+      public async Task<IActionResult> InvokeActionAsync([FromRoute] string id, [FromRoute] string name, [FromBody] dynamic parameters) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -66,7 +63,7 @@ namespace ObjectAPI.Controllers {
 
       // Note: Mostly syntactic sugar
       [HttpPost("action")]
-      public async Task<IActionResult> InvokeAnonymousActionAsync(string id) {
+      public async Task<IActionResult> InvokeAnonymousActionAsync([FromRoute] string id) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -81,19 +78,19 @@ namespace ObjectAPI.Controllers {
 
       [HttpPost("on-property-change/{name}")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> OnPropertyChangeAsync(string id, string name) {
+      public Task<IActionResult> OnPropertyChangeAsync([FromRoute] string id, [FromRoute] string name) {
          throw new NotImplementedException();
       }
 
       [HttpPost("on-td-change")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> OnTDChangeAsync(string id) {
+      public Task<IActionResult> OnTDChangeAsync([FromRoute] string id) {
          throw new NotImplementedException();
       }
 
       [HttpPost("on-event/{name}")]
       [ApiExplorerSettings(IgnoreApi = true)]
-      public Task<IActionResult> OnEventAsync(string id, string name) {
+      public Task<IActionResult> OnEventAsync([FromRoute] string id, [FromRoute] string name) {
          throw new NotImplementedException();
       }
    }
