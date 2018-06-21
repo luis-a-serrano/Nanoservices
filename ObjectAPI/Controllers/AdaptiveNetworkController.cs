@@ -97,7 +97,7 @@ namespace ObjectAPI.Controllers {
 
          var results = await Task.WhenAll(replies);
 
-         return Ok();
+         return Ok(new ActionResponse());
       }
 
       [HttpPost("listen")]

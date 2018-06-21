@@ -46,12 +46,18 @@ namespace ObjectActor {
 
       public async Task<WoTReply> AddPropertyAsync(WoTThingProperty property) {
          var reply = new WoTReply();
-         var addAttempt = await this.StateManager.TryAddStateAsync(PropertyPrefix + property.Name, property);
+         try {
+            var addAttempt = await this.StateManager.TryAddStateAsync(PropertyPrefix + property.Name, property);
 
-         if (!addAttempt) {
+            if (!addAttempt) {
+               reply.Type = WoTReplyType.Error;
+               reply.Error = new WoTError("A property with the same name already exists.");
+            }
+         } catch (Exception exp) {
             reply.Type = WoTReplyType.Error;
-            reply.Error = new WoTError("A property with the same name already exists.");
+            reply.Result = new WoTResult { Value = exp.Message };
          }
+         
 
          return reply;
       }
@@ -180,79 +186,89 @@ namespace ObjectActor {
 
       public async Task<WoTReply> InvokeAnonymousActionAsync(string rawAction) {
          var reply = new WoTReply();
+         try {
 
-         var matches = PropertySubstitutionRegex.Matches(rawAction);
-         var cachedProperties = new Dictionary<string, WoTThingProperty>();
+            var matches = PropertySubstitutionRegex.Matches(rawAction);
+            var cachedProperties = new Dictionary<string, WoTThingProperty>();
 
-         foreach (Match match in matches) {
-            var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value;
+            foreach (Match match in matches) {
+               var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value;
 
-            if (!String.IsNullOrWhiteSpace(potentialPropertyName) && !cachedProperties.ContainsKey(potentialPropertyName)) {
-               var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + potentialPropertyName);
-               if (desiredProperty.HasValue) {
-                  cachedProperties[potentialPropertyName] = desiredProperty.Value;
+               if (!String.IsNullOrWhiteSpace(potentialPropertyName) && !cachedProperties.ContainsKey(potentialPropertyName)) {
+                  var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + potentialPropertyName);
+                  if (desiredProperty.HasValue) {
+                     cachedProperties[potentialPropertyName] = desiredProperty.Value;
+                  }
                }
             }
-         }
 
-         var injectedAction = PropertySubstitutionRegex.Replace(rawAction, (match) => {
-            var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value ?? String.Empty;
+            var injectedAction = PropertySubstitutionRegex.Replace(rawAction, (match) => {
+               var potentialPropertyName = match.Groups[PropertySubstitutionRegexGroupName]?.Value ?? String.Empty;
 
-            if (cachedProperties.TryGetValue(potentialPropertyName, out var property)) {
-               return JsonConvert.SerializeObject(property.Value);
-            } else {
-               return match.Value;
-            }
-         });
+               if (cachedProperties.TryGetValue(potentialPropertyName, out var property)) {
+                  return JsonConvert.SerializeObject(property.Value);
+               } else {
+                  return match.Value;
+               }
+            });
 
-         var anonymusAction = JObject.Parse(injectedAction);
+            reply.Type = WoTReplyType.Error;
+            reply.Result = new WoTResult { Value = rawAction };
+            return reply;
 
-         var targetUri = anonymusAction?[nameof(AnonymousAction.Address)]?.ToString();
-         var injectedPayload = anonymusAction?[nameof(AnonymousAction.Payload)]?.ToString() ?? String.Empty;
+            var anonymusAction = JObject.Parse(injectedAction);
 
-         if (!String.IsNullOrWhiteSpace(targetUri)) {
-            // Note: We should allow the user to provide additional details for the request if these are needed.
-            _Client.DefaultRequestHeaders.Accept.Clear();
-            _Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            var targetUri = anonymusAction?[nameof(AnonymousAction.Address)]?.ToString();
+            var injectedPayload = anonymusAction?[nameof(AnonymousAction.Payload)]?.ToString() ?? String.Empty;
 
-            var response = await _Client.PostAsync(
-               targetUri,
-               // Note: Here we are assuming that "value" is of type string. A better check need to be performed,
-               // or a different approach should be used.
-               new StringContent(injectedPayload, Encoding.UTF8, "application/json")
-            );
+            if (!String.IsNullOrWhiteSpace(targetUri)) {
+               // Note: We should allow the user to provide additional details for the request if these are needed.
+               _Client.DefaultRequestHeaders.Accept.Clear();
+               _Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            if (response.IsSuccessStatusCode) {
-               var responseContent = JsonConvert.DeserializeObject<ActionResponse>(await response.Content.ReadAsStringAsync());
+               var response = await _Client.PostAsync(
+                  targetUri,
+                  // Note: Here we are assuming that "value" is of type string. A better check need to be performed,
+                  // or a different approach should be used.
+                  new StringContent(injectedPayload, Encoding.UTF8, "application/json")
+               );
 
-               foreach (var updatedProperty in responseContent.Updates) {
-                  if (!cachedProperties.TryGetValue(updatedProperty.Key, out var property)) {
-                     var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + updatedProperty.Key);
+               if (response.IsSuccessStatusCode) {
+                  var responseContent = JsonConvert.DeserializeObject<ActionResponse>(await response.Content.ReadAsStringAsync());
 
-                     if (desiredProperty.HasValue) {
-                        property = desiredProperty.Value;
-                     } else {
-                        continue;
+                  foreach (var updatedProperty in responseContent.Updates) {
+                     if (!cachedProperties.TryGetValue(updatedProperty.Key, out var property)) {
+                        var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + updatedProperty.Key);
+
+                        if (desiredProperty.HasValue) {
+                           property = desiredProperty.Value;
+                        } else {
+                           continue;
+                        }
                      }
+
+                     property.Value = updatedProperty.Value;
+                     await this.StateManager.SetStateAsync(PropertyPrefix + updatedProperty.Key, property);
                   }
 
-                  property.Value = updatedProperty.Value;
-                  await this.StateManager.SetStateAsync(PropertyPrefix + updatedProperty.Key, property);
-               }
+                  reply.Type = WoTReplyType.Result;
+                  reply.Result = new WoTResult {
+                     Type = WoTDataType.Unknown,
+                     Value = responseContent.Result
+                  };
 
-               reply.Type = WoTReplyType.Result;
-               reply.Result = new WoTResult {
-                  Type = WoTDataType.Unknown,
-                  Value = responseContent.Result
-               };
-               
+               } else {
+                  reply.Type = WoTReplyType.Error;
+                  reply.Error = new WoTError("The request to the specified API was not successful.");
+               }
             } else {
                reply.Type = WoTReplyType.Error;
-               reply.Error = new WoTError("The request to the specified API was not successful.");
+               reply.Error = new WoTError("No valid address was specified for the remote API.");
             }
-         } else {
+
+         } catch (Exception exp) {
             reply.Type = WoTReplyType.Error;
-            reply.Error = new WoTError("No valid address was specified for the remote API.");
+            reply.Result = new WoTResult { Value = exp.Message };
          }
 
          return reply;

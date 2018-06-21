@@ -3,6 +3,8 @@
 "use strict";
 
 $(document).ready(function () {
+   // TODO: Hide the Node tabs depending on the amount of nodes selected.
+
    $("input[type='range'][lasr-bonded-with]").on("input", (event) => {
       const $_ = $(event.target);
       $(`#${$_.attr("lasr-bonded-with")}`).val($_.val());
@@ -26,6 +28,19 @@ $(document).ready(function () {
       }
    });
 
+   const $post = function (url, data) {
+      return $.ajax(url, {
+         type: "POST",
+
+         contentType: "application/json; charset=utf-8",
+         processData: false,
+         data: JSON.stringify(data),
+
+         dataType: "json",
+         cache: false
+      });
+   };
+
    $("#nodeTabs").on("click", (event) => {
       event.preventDefault();
 
@@ -43,6 +58,8 @@ $(document).ready(function () {
    });
 
    $("#runDemo").on("click", async function () {
+      const hostAddress = "http://localhost:8093/";
+
       // Properties Enum.
       const NodeProperties = Object.freeze({
          OwnCoefficients: "OwnCoefficients",
@@ -53,7 +70,14 @@ $(document).ready(function () {
       // Get the amount of nodes. Get the amount of coefficients.
       const numNodes = parseInt($("#numOfNodesDisplay").val(), 10);
       const numCoefficients = parseInt($("#numOfCoefficientsDisplay").val(), 10);
-      const testData = [[]]; //~~
+      const testData = [
+         [100, 100, 100, 100, 100, 100],
+         [100, 100, 100, 100, 100, 100],
+         [100, 100, 100, 100, 100, 100],
+         [100, 100, 100, 100, 100, 100],
+         [100, 100, 100, 100, 100, 100],
+         [100, 100, 100, 100, 100, 100]
+      ]; //~~
 
       // Construct the nodes.
       const nodes = {};
@@ -81,40 +105,41 @@ $(document).ready(function () {
       };
 
       const neighborsProperty = {
-         Name: NodeProperties.NeighborsList,
-         Schema: {
-            Type: "Array"
+         name: NodeProperties.NeighborsList,
+         schema: {
+            type: "Array"
          },
-         Value: [],
-         Writable: true
+         value: [],
+         writable: true
       };
 
       // Add the properties to each node.
       const nodesIds = Object.getOwnPropertyNames(nodes);
-      for (let nodeId in nodesIds) {
+      for (let nodeId of nodesIds) {
          const promises = [];
 
-         promises.push($.post(`api/ObjectActor/${nodeId}/add-property`, coefficientProperty, null, "json"));
-         promises.push($.post(`api/ObjectActor/${nodeId}/add-property`, neighborsProperty, null, "json"));
+         // TODO: Change everything to not use Promises.all()
+         promises.push($post(`api/ObjectActor/${nodeId}/add-property`, coefficientProperty));
+         //promises.push($post(`api/ObjectActor/${nodeId}/add-property`, neighborsProperty).fail((a, b, c) => console.log(a)));
 
-         const myNeighbors = nodesIds.filter(key => key != nodeId);
-         for (let otherNode in myNeighbors) {
+         const myNeighbors = nodesIds.filter(key => key !== nodeId);
+         for (let otherNode of myNeighbors) {
             // Property Schema.
             const coefficientPropertyForNeighbor = {
-               Name: `${NodeProperties.OthersCoefficients}_${otherNode}`,
-               Schema: {
-                  Type: "Array"
+               name: `${NodeProperties.OthersCoefficients}_${otherNode}`,
+               schema: {
+                  type: "Array"
                },
-               Value: [],
-               Writable: true
+               value: [],
+               writable: true
             };
-
-            promises.push($.post(`api/ObjectActor/${nodeId}/add-property`, coefficientPropertyForNeighbor, null, "json"));
+            promises[0].fail((a, b, c) => console.log(a));
+            //promises.push($post(`api/ObjectActor/${nodeId}/add-property`, coefficientPropertyForNeighbor).fail((a, b, c) => console.log(a)));
          }
 
-         nodes[nodeId].currentPromise = Promise.all(promises);
+         //nodes[nodeId].currentPromise = Promise.all(promises);
       }
-
+      return;//
       // Wait for all the API calls to be finished.
       await Promise.all(nodesIds.map(nodeId => nodes[nodeId].currentPromise));
 
@@ -123,34 +148,34 @@ $(document).ready(function () {
       defaultCoefficients.fill(0);
 
 
-      for (let nodeId in nodesIds) {
+      for (let nodeId of nodesIds) {
          const initializeJson = {
-            Address: "api/AdaptiveNetwork/initialize",//~~
-            Payload: {
-               Coefficients: {
-                  Ids: [].concat(
+            address: `${hostAddress}api/AdaptiveNetwork/initialize`,
+            payload: {
+               coefficients: {
+                  ids: [].concat(
                      NodeProperties.OwnCoefficients,
                      nodesIds
-                        .filter(key => key != nodeId)
+                        .filter(key => key !== nodeId)
                         .map(otherNode => `${NodeProperties.OthersCoefficients}_${otherNode}`)
                   ),
-                  Values: defaultCoefficients
+                  values: defaultCoefficients
                }
             }
          };
 
-         nodes[nodeId].currentPromise = $.post(`api/ObjectActor/${nodeId}/action`, initializeJson, null, "json")
+         nodes[nodeId].currentPromise = $post(`api/ObjectActor/${nodeId}/action`, initializeJson).fail((a, b, c) => console.log(a));
       }
-
+      return;//
       await Promise.all(nodesIds.map(nodeId => nodes[nodeId].currentPromise));
 
-      const tabsContent = $("#tablesPanels > .tab-content");// Ad headers
+      const tabsContent = $("#tablesPanels > .tab-content");// TODO: Add headers here
 
       for (let currentIteration = 0; currentIteration < testData[0].length - numCoefficients; currentIteration++) { //~~
 
-         for (let nodeId in nodesIds) {
+         for (let nodeId of nodesIds) {
             const calculateJson = {
-               Address: "api/AdaptiveNetwork/learn",//~~
+               Address: `${hostAddress}api/AdaptiveNetwork/learn`,
                Payload: {
                   Iteration: {
                      Signal: nodes[nodeId].data[currentIteration + numCoefficients],
@@ -158,11 +183,11 @@ $(document).ready(function () {
                   },
                   OwnCoefficients: `#${NodeProperties.OwnCoefficients}#`,
                   NeighborsCoefficients: nodesIds
-                     .filter(key => key != nodeId)
+                     .filter(key => key !== nodeId)
                      .map(otherNode => `#${NodeProperties.OthersCoefficients}_${otherNode}#`)
                }
             };
-            nodes[nodeId].currentPromise = $.post(`api/ObjectActor/${nodeId}/action`, calculateJson, null, "json");
+            nodes[nodeId].currentPromise = $post(`api/ObjectActor/${nodeId}/action`, calculateJson).fail((a, b, c) => console.log(a));
          }
 
          const estimations = await Promise.all(nodesIds.map(nodeId => nodes[nodeId].currentPromise));
@@ -171,15 +196,13 @@ $(document).ready(function () {
             const iterationRow = tabsContent.children(`.tab-pane:nth-child(${l}) > .table > tbody`).get(0).insertRow();
 
             iterationRow.insertCell().appendChild(document.createTextNode(currentIteration));
-            iterationRow.insertCell().appendChild(document.createTextNode(estimations[l]));
-            // TODO: Show the signal value. Because we iterate with `for...in` that means
-            // that the order is not guranteed. Thus, we need to make a change to allow
-            // a proper mapping for presenting that value.
+            iterationRow.insertCell().appendChild(document.createTextNode(nodes[nodesIds[l - 1]].data[currentIteration + numCoefficients]));
+            iterationRow.insertCell().appendChild(document.createTextNode(estimations[l - 1]));
          }
 
-         for (let nodeId in nodesIds) {
+         for (let nodeId of nodesIds) {
             const shareJson = {
-               Address: "api/AdaptiveNetwork/share",//~~
+               Address: `${hostAddress}api/AdaptiveNetwork/share`,
                Payload: {
                   TargetProperty: `${NodeProperties.OthersCoefficients}_${nodeId}`,
                   Coefficients: `#${NodeProperties.OwnCoefficients}#`,
@@ -187,15 +210,11 @@ $(document).ready(function () {
                }
             };
 
-            nodes[nodeId].currentPromise = $.post(`api/ObjectActor/${nodeId}/action`, shareJson, null, "json");
+            nodes[nodeId].currentPromise = $post(`api/ObjectActor/${nodeId}/action`, shareJson).fail((a, b, c) => console.log(a));
             await nodes[nodeId].currentPromise;
          }
 
-
       }
-
-
-
 
    });
 });

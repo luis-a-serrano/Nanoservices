@@ -1,13 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.ServiceFabric.Actors;
 using Microsoft.ServiceFabric.Actors.Client;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using ObjectActor.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using WebOfThings;
 
@@ -16,17 +14,31 @@ namespace ObjectAPI.Controllers {
    public class ObjectActorController: Controller {
 
       [HttpPost("add-property")]
-      public async Task<IActionResult> AddPropertyAsync(string id, WoTThingProperty property) {
-         var actor = ActorProxy.Create<IObjectActor>(
-            new ActorId(id),
-            ObjectService.Name.ToServiceUri()
-         );
+      public async Task<IActionResult> AddPropertyAsync([FromRoute] string id, [FromBody] WoTThingProperty property) {
+         return BadRequest("Blessed");
 
-         var potentialError = await actor.AddPropertyAsync(property);
+         WoTReply potentialError = null;
+         try {
+            if (!ModelState.IsValid) {
+               throw new Exception("Model not valid");
+            }
+            var actor = ActorProxy.Create<IObjectActor>(
+               new ActorId(id),
+               null,
+               ObjectService.Name,
+               null
+            );
+            potentialError = await actor.AddPropertyAsync(property);
+         } catch (Exception exp) {
+            potentialError.Type = WoTReplyType.Error;
+            potentialError.Result = new WoTResult { Value = exp.Message };
+         }
+
+         //return BadRequest(potentialError);
+         return BadRequest("All is good.");
 
          return CreatedAtAction(
-            nameof(ObjectActorController.ReadPropertyAsync),
-            nameof(ObjectActorController),
+            nameof(ReadPropertyAsync),
             new { id, name = property.Name },
             property
          );
@@ -36,7 +48,9 @@ namespace ObjectAPI.Controllers {
       public async Task<IActionResult> SetPropertyReadHandlerAsync(string id, string propertyName, WoTPropertyReadHandler readHandler) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
-            ObjectService.Name.ToServiceUri()
+            null,
+            ObjectService.Name,
+            null
          );
 
          var potentialError = await actor.SetPropertyReadHandlerAsync(propertyName, readHandler);
@@ -48,7 +62,9 @@ namespace ObjectAPI.Controllers {
       public async Task<IActionResult> SetPropertyWriteHandlerAsync(string id, string propertyName, WoTPropertyWriteHandler writeHandler) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
-            ObjectService.Name.ToServiceUri()
+            null,
+            ObjectService.Name,
+            null
          );
 
          var potentialError = await actor.SetPropertyWriteHandlerAsync(propertyName, writeHandler);
@@ -57,10 +73,12 @@ namespace ObjectAPI.Controllers {
       }
 
       [HttpGet("property/{name}")]
-      public async Task<IActionResult> ReadPropertyAsync(string id, string name) {
+      public async Task<IActionResult> ReadPropertyAsync([FromRoute] string id, [FromRoute] string name) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
-            ObjectService.Name.ToServiceUri()
+            null,
+            ObjectService.Name,
+            null
          );
 
          var potentialError = await actor.ReadPropertyAsync(name);
@@ -72,7 +90,9 @@ namespace ObjectAPI.Controllers {
       public async Task<IActionResult> WritePropertyAsync(string id, string name, dynamic value) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
-            ObjectService.Name.ToServiceUri()
+            null,
+            ObjectService.Name,
+            null
          );
 
          var potentialError = await actor.WritePropertyAsync(name, JsonConvert.SerializeObject(value));
@@ -80,18 +100,31 @@ namespace ObjectAPI.Controllers {
          return NoContent();
       }
 
-      // Note: Mostly syntactic sugar
       [HttpPost("action")]
       public async Task<IActionResult> InvokeAnonymousActionAsync(string id) {
-         var actor = ActorProxy.Create<IObjectActor>(
-            new ActorId(id),
-            ObjectService.Name.ToServiceUri()
-         );
+         WoTReply potentialError = null;
+         try {
+            var actor = ActorProxy.Create<IObjectActor>(
+               new ActorId(id),
+               null,
+               ObjectService.Name,
+               null
+            );
 
-         var potentialError = await actor.InvokeAnonymousActionAsync(await Request.GetBodyAsStringAsync());
+            potentialError = await actor.InvokeAnonymousActionAsync(await Request.GetBodyAsStringAsync());
+         } catch (Exception exp) {
+            return StatusCode(StatusCodes.Status500InternalServerError, exp);
+         }
+         
+         if (potentialError != null && potentialError.Type == WoTReplyType.Error) {
+            return StatusCode(StatusCodes.Status500InternalServerError, potentialError);
+         }
 
-         // TODO: Send a different action result depending on the presence, and type, of the error.
          return Ok(potentialError);
+      }
+
+      public class Fet {
+         public string P1 { get; set; }
       }
    }
 }
