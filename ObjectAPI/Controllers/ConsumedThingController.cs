@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.ServiceFabric.Actors;
 using Microsoft.ServiceFabric.Actors.Client;
 using Newtonsoft.Json;
@@ -8,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WebOfThings;
 
 namespace ObjectAPI.Controllers {
    [Route("api/[controller]/{id}")]
@@ -25,6 +27,16 @@ namespace ObjectAPI.Controllers {
          throw new NotImplementedException();
       }
 
+      /// <summary>
+      /// Reads the Property of the Object.
+      /// </summary>
+      /// <remarks>
+      /// Reads the stored value for the Property that matches the name specified on the route.
+      /// </remarks>
+      /// <response code="200">The stored value was returned sucessfully.</response>
+      /// <response code="404">The specified Property doesn't exist.</response>
+      /// <response code="410">The value for the specified Property couldn't be read.</response>
+      /// <response code="500">Something went wrong with the server code.</response>
       [HttpGet("property/{name}")]
       public async Task<IActionResult> ReadPropertyAsync(string id, string name) {
          var actor = ActorProxy.Create<IObjectActor>(
@@ -34,12 +46,33 @@ namespace ObjectAPI.Controllers {
 
          var potentialError = await actor.ReadPropertyAsync(name);
 
-         // TODO: Send a different action result depending on the presence, and type, of the error.
-         return Ok(potentialError);
+         switch (potentialError.Type) {
+            case WoTReplyType.Error:
+               if (potentialError.Result != null && potentialError.Result.Type == WoTDataType.Unknown) {
+                  return StatusCode(StatusCodes.Status410Gone, potentialError.Error.Description);
+               } else {
+                  return StatusCode(StatusCodes.Status404NotFound, potentialError.Error.Description);
+               }
+            case WoTReplyType.RawResult:
+            case WoTReplyType.Result:
+               return Ok(potentialError.Result.Value);
+            default:
+               return StatusCode(StatusCodes.Status500InternalServerError);
+         }
       }
 
+      /// <summary>
+      /// Writes a value to the Property of the Object.
+      /// </summary>
+      /// <remarks>
+      /// Stores a value for the Property that matches the name specified on the route.
+      /// </remarks>
+      /// <response code="204">The value was stored sucessfully.</response>
+      /// <response code="404">The specified Property doesn't exist.</response>
+      /// <response code="410">The value for the specified Property couldn't be writen.</response>
+      /// <response code="500">Something went wrong with the server code.</response>
       [HttpPut("property/{name}")]
-      public async Task<IActionResult> WritePropertyAsync(string id, string name, [FromBody] dynamic value) {
+      public async Task<IActionResult> WritePropertyAsync(string id, string name, [FromBody] object value) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -47,12 +80,28 @@ namespace ObjectAPI.Controllers {
 
          var potentialError = await actor.WritePropertyAsync(name, JsonConvert.SerializeObject(value));
 
-         // TODO: Send a different action result depending on the presence, and type, of the error.
-         return NoContent();
+         switch (potentialError.Type) {
+            case WoTReplyType.Error:
+               if (potentialError.Result != null && potentialError.Result.Type == WoTDataType.Unknown) {
+                  return StatusCode(StatusCodes.Status410Gone, potentialError.Error.Description);
+               } else {
+                  return StatusCode(StatusCodes.Status404NotFound, potentialError.Error.Description);
+               }
+            case WoTReplyType.Success:
+               return NoContent();
+            default:
+               return StatusCode(StatusCodes.Status500InternalServerError);
+         }
       }
 
+      /// <summary>
+      /// *In Development.
+      /// </summary>
+      /// <remarks>
+      /// This method is in development. It might work under very specific circumstances.
+      /// </remarks>
       [HttpPost("action/{name}")]
-      public async Task<IActionResult> InvokeActionAsync(string id, string name, [FromBody] dynamic parameters) {
+      public async Task<IActionResult> InvokeActionAsync(string id, string name, [FromBody] object parameters) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),
             ObjectService.Name.ToServiceUri()
@@ -64,8 +113,14 @@ namespace ObjectAPI.Controllers {
          return Ok(potentialError);
       }
 
-      // Note: Mostly syntactic sugar
+      /// <summary>
+      /// *In Development.
+      /// </summary>
+      /// <remarks>
+      /// This method is in development. It might work under very specific circumstances.
+      /// </remarks>
       [HttpPost("action")]
+      
       public async Task<IActionResult> InvokeAnonymousActionAsync(string id) {
          var actor = ActorProxy.Create<IObjectActor>(
             new ActorId(id),

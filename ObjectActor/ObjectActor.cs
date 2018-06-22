@@ -163,7 +163,7 @@ namespace ObjectActor {
       public async Task<WoTReply> SetActionHandlerAsync(string name, WoTActionHandler action) {
          var reply = new WoTReply();
 
-         var actionExists = await this.StateManager.ContainsStateAsync(name);
+         var actionExists = await this.StateManager.ContainsStateAsync(ActionPrefix + name);
 
          if (actionExists) {
             await this.StateManager.AddOrUpdateStateAsync(
@@ -208,7 +208,7 @@ namespace ObjectActor {
                   desiredPropertyReadHandler.Value.Address,
                   // Note: Here we are assuming that "desiredProperty.Value.Value" is of type string. A better check
                   // need to be performed, or a different approach should be used.
-                  new StringContent(desiredProperty.Value.Value, Encoding.UTF8, "application/json"));
+                  new StringContent(JsonConvert.SerializeObject(desiredProperty.Value.Value), Encoding.UTF8, "application/json"));
 
                if (response.IsSuccessStatusCode) {
                   reply.Type = WoTReplyType.RawResult;
@@ -218,6 +218,7 @@ namespace ObjectActor {
                   };
                } else {
                   reply.Type = WoTReplyType.Error;
+                  reply.Result = new WoTResult { Type = WoTDataType.Unknown };
                   reply.Error = new WoTError("The specified property couldn't be read.");
                }
 
@@ -261,6 +262,7 @@ namespace ObjectActor {
                   await this.StateManager.SetStateAsync(PropertyPrefix + name, desiredProperty.Value);
                } else {
                   reply.Type = WoTReplyType.Error;
+                  reply.Result = new WoTResult { Type = WoTDataType.Unknown };
                   reply.Error = new WoTError("The specified property couldn't be written.");
                }
 
