@@ -113,14 +113,16 @@ $(document).ready(function () {
          writable: true
       };
 
+      const defaultCoefficients = [];
+      defaultCoefficients.length = numCoefficients;
+      defaultCoefficients.fill(0);
+
       // Add the properties to each node.
       const nodesIds = Object.getOwnPropertyNames(nodes);
-      for (let nodeId of nodesIds) {
-         const promises = [];
-
-         // TODO: Change everything to not use Promises.all()
+      const promises = [];
+      for (const nodeId of nodesIds) {
          promises.push($post(`api/ObjectActor/${nodeId}/add-property`, coefficientProperty));
-         //promises.push($post(`api/ObjectActor/${nodeId}/add-property`, neighborsProperty).fail((a, b, c) => console.log(a)));
+         promises.push($post(`api/ObjectActor/${nodeId}/add-property`, neighborsProperty));
 
          const myNeighbors = nodesIds.filter(key => key !== nodeId);
          for (let otherNode of myNeighbors) {
@@ -133,39 +135,65 @@ $(document).ready(function () {
                value: [],
                writable: true
             };
-            promises[0].fail((a, b, c) => console.log(a));
-            //promises.push($post(`api/ObjectActor/${nodeId}/add-property`, coefficientPropertyForNeighbor).fail((a, b, c) => console.log(a)));
+
+            promises.push($post(`api/ObjectActor/${nodeId}/add-property`, coefficientPropertyForNeighbor));
          }
 
          //nodes[nodeId].currentPromise = Promise.all(promises);
       }
+
+      $.when(...promises)
+         .catch((error) => {
+            throw ""; //~
+
+         }).done(() => {
+            for (const nodeId of nodesIds) {
+               const initializeJson = {
+                  address: `${hostAddress}api/AdaptiveNetwork/initialize`,
+                  payload: {
+                     coefficients: {
+                        ids: [].concat(
+                           NodeProperties.OwnCoefficients,
+                           nodesIds
+                              .filter(key => key !== nodeId)
+                              .map(otherNode => `${NodeProperties.OthersCoefficients}_${otherNode}`)
+                        ),
+                        values: defaultCoefficients
+                     }
+                  }
+               };
+
+               nodes[nodeId].currentPromise = $post(`api/ObjectActor/${nodeId}/action`, initializeJson).fail((a, b, c) => console.log(a));
+            }
+         })
+
       return;//
       // Wait for all the API calls to be finished.
       await Promise.all(nodesIds.map(nodeId => nodes[nodeId].currentPromise));
 
-      const defaultCoefficients = [];
-      defaultCoefficients.length = numCoefficients;
-      defaultCoefficients.fill(0);
+      //const defaultCoefficients = [];
+      //defaultCoefficients.length = numCoefficients;
+      //defaultCoefficients.fill(0);
 
 
-      for (let nodeId of nodesIds) {
-         const initializeJson = {
-            address: `${hostAddress}api/AdaptiveNetwork/initialize`,
-            payload: {
-               coefficients: {
-                  ids: [].concat(
-                     NodeProperties.OwnCoefficients,
-                     nodesIds
-                        .filter(key => key !== nodeId)
-                        .map(otherNode => `${NodeProperties.OthersCoefficients}_${otherNode}`)
-                  ),
-                  values: defaultCoefficients
-               }
-            }
-         };
+      //for (let nodeId of nodesIds) {
+      //   const initializeJson = {
+      //      address: `${hostAddress}api/AdaptiveNetwork/initialize`,
+      //      payload: {
+      //         coefficients: {
+      //            ids: [].concat(
+      //               NodeProperties.OwnCoefficients,
+      //               nodesIds
+      //                  .filter(key => key !== nodeId)
+      //                  .map(otherNode => `${NodeProperties.OthersCoefficients}_${otherNode}`)
+      //            ),
+      //            values: defaultCoefficients
+      //         }
+      //      }
+      //   };
 
-         nodes[nodeId].currentPromise = $post(`api/ObjectActor/${nodeId}/action`, initializeJson).fail((a, b, c) => console.log(a));
-      }
+      //   nodes[nodeId].currentPromise = $post(`api/ObjectActor/${nodeId}/action`, initializeJson).fail((a, b, c) => console.log(a));
+      //}
       return;//
       await Promise.all(nodesIds.map(nodeId => nodes[nodeId].currentPromise));
 
