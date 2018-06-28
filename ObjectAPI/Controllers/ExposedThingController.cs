@@ -93,7 +93,7 @@ namespace ObjectAPI.Controllers {
       /// Removes the Property that matches the name provided as a route parameter.
       /// </remarks>
       /// <response code="204">The Property with that name was removed sucessfully.</response>
-      /// <response code="410">A Property with that name doesn't exist.</response>
+      /// <response code="404">A Property with that name doesn't exist.</response>
       /// <response code="500">Something went wrong with the server code.</response>
       [HttpDelete("remove-property/{name}")]
       public async Task<IActionResult> RemovePropertyAsync(string id, string name) {
@@ -106,7 +106,7 @@ namespace ObjectAPI.Controllers {
 
          switch (potentialError.Type) {
             case WoTReplyType.Error:
-               return StatusCode(StatusCodes.Status410Gone, potentialError.Error.Description);
+               return StatusCode(StatusCodes.Status404NotFound, potentialError.Error.Description);
             case WoTReplyType.None:
             case WoTReplyType.Success:
                return NoContent();
@@ -158,7 +158,7 @@ namespace ObjectAPI.Controllers {
       /// Removes the Action that matches the name provided as a route parameter.
       /// </remarks>
       /// <response code="204">The Action with that name was removed sucessfully.</response>
-      /// <response code="410">An Action with that name doesn't exist.</response>
+      /// <response code="404">An Action with that name doesn't exist.</response>
       /// <response code="500">Something went wrong with the server code.</response>
       [HttpDelete("remove-action/{name}")]
       public async Task<IActionResult> RemoveActionAsync(string id, string name) {
@@ -171,7 +171,7 @@ namespace ObjectAPI.Controllers {
 
          switch (potentialError.Type) {
             case WoTReplyType.Error:
-               return StatusCode(StatusCodes.Status410Gone, potentialError.Error.Description);
+               return StatusCode(StatusCodes.Status404NotFound, potentialError.Error.Description);
             case WoTReplyType.None:
             case WoTReplyType.Success:
                return NoContent();
@@ -208,8 +208,19 @@ namespace ObjectAPI.Controllers {
 
          var potentialError = await actor.SetPropertyReadHandlerAsync(propertyName, readHandler);
 
-         // TODO: Send a different action result depending on the presence, and type, of the error.
-         return NoContent();
+         switch (potentialError.Type) {
+            case WoTReplyType.Error:
+               return StatusCode(StatusCodes.Status404NotFound, potentialError.Error.Description);
+            case WoTReplyType.Success:
+               return CreatedAtAction(
+                  nameof(ConsumedThingController.ReadPropertyAsync),
+                  nameof(ConsumedThingController).AsControllerName(),
+                  new { id, name = propertyName },
+                  readHandler
+               );
+            default:
+               return StatusCode(StatusCodes.Status500InternalServerError);
+         }
       }
 
       /// <summary>

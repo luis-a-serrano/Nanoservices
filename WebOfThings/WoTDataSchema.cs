@@ -12,6 +12,8 @@ namespace WebOfThings {
    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy), NamingStrategyParameters = new object[] { true, false, false })]
    public class WoTDataSchema {
       public WoTDataType Type { get; set; }
+      public WoTDataSchema Items { get; set; }
+      public Dictionary<string, WoTDataSchema> Properties { get; set; }
    }
 
 }

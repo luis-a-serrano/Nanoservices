@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Text;
 
 namespace WebOfThings {
@@ -9,5 +10,6 @@ namespace WebOfThings {
    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy), NamingStrategyParameters = new object[] { true, false, false })]
    public class WoTPropertyReadHandler {
       public Uri Address { get; set; }
+      public string Verb { get; set; }
    }
 }

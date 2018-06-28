@@ -16,6 +16,7 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using static System.Net.WebRequestMethods;
 
 namespace ObjectActor {
 
@@ -127,7 +128,7 @@ namespace ObjectActor {
       public async Task<WoTReply> SetPropertyReadHandlerAsync(string name, WoTPropertyReadHandler readHandler) {
          var reply = new WoTReply();
 
-         var propertyExists = await this.StateManager.ContainsStateAsync(name);
+         var propertyExists = await this.StateManager.ContainsStateAsync(PropertyPrefix + name);
 
          if (propertyExists) {
             await this.StateManager.AddOrUpdateStateAsync(
@@ -145,7 +146,7 @@ namespace ObjectActor {
       public async Task<WoTReply> SetPropertyWriteHandlerAsync(string name, WoTPropertyWriteHandler writeHandler) {
          var reply = new WoTReply();
          
-         var propertyExists = await this.StateManager.ContainsStateAsync(name);
+         var propertyExists = await this.StateManager.ContainsStateAsync(PropertyPrefix + name);
 
          if (propertyExists) {
             await this.StateManager.AddOrUpdateStateAsync(
@@ -199,23 +200,41 @@ namespace ObjectActor {
          var desiredProperty = await this.StateManager.TryGetStateAsync<WoTThingProperty>(PropertyPrefix + name);
 
          if (desiredProperty.HasValue) {
-            if (desiredPropertyReadHandler.HasValue) {
+            if (/*false && */desiredPropertyReadHandler.HasValue) {
                // Note: We should allow the user to provide additional details for the request if these are needed.
                _Client.DefaultRequestHeaders.Accept.Clear();
                _Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-               var response = await _Client.PostAsync(
-                  desiredPropertyReadHandler.Value.Address,
-                  // Note: Here we are assuming that "desiredProperty.Value.Value" is of type string. A better check
-                  // need to be performed, or a different approach should be used.
-                  new StringContent(JsonConvert.SerializeObject(desiredProperty.Value.Value), Encoding.UTF8, "application/json"));
+               HttpResponseMessage response;
+               switch (desiredPropertyReadHandler.Value.Verb) {
+                  case Http.Post:
+                     response = await _Client.PostAsync(
+                        desiredPropertyReadHandler.Value.Address,
+                        // Note: Here we are assuming that "desiredProperty.Value.Value" is of type string. A better check
+                        // need to be performed, or a different approach should be used.
+                        new StringContent(JsonConvert.SerializeObject(desiredProperty.Value.Value), Encoding.UTF8, "application/json"));
+                     break;
+                  case Http.Get:
+                  default:
+                     response = await _Client.GetAsync(desiredPropertyReadHandler.Value.Address);
+                     break;
+               }
 
                if (response.IsSuccessStatusCode) {
-                  reply.Type = WoTReplyType.RawResult;
-                  reply.Result = new WoTResult {
-                     Type = desiredProperty.Value.Schema.Type,
-                     Value = await response.Content.ReadAsStringAsync()
-                  };
+
+                  if (WoTDataTypeParser.TryParse(await response.Content.ReadAsStringAsync(), desiredProperty.Value.Schema.Type, out var parsed)) {
+                     reply.Type = WoTReplyType.RawResult;
+                     reply.Result = new WoTResult {
+                        Type = desiredProperty.Value.Schema.Type,
+                        Value = parsed
+                     };
+                  } else {
+                     reply.Type = WoTReplyType.Error;
+                     reply.Result = new WoTResult { Type = WoTDataType.Unknown };
+                     reply.Error = new WoTError("The read property doesn't match the expected data type.");
+                  }
+                  
+                  
                } else {
                   reply.Type = WoTReplyType.Error;
                   reply.Result = new WoTResult { Type = WoTDataType.Unknown };
