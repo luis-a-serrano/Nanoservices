@@ -20,7 +20,7 @@
                                     AzureActiveDirectory="true"
                                     ServerCertThumbprint="0123456789012345678901234567890123456789" />
   -->
-  <ClusterConnectionParameters />
+  <ClusterConnectionParameters ConnectionEndpoint="nanoservicesapp.eastus.cloudapp.azure.com:19000" X509Credential="true" ServerCertThumbprint="0A1BCB9754DAE2A5B95CBFCDB174F5060735A306" FindType="FindByThumbprint" FindValue="0A1BCB9754DAE2A5B95CBFCDB174F5060735A306" StoreLocation="CurrentUser" StoreName="My" />
   <ApplicationParameterFile Path="..\ApplicationParameters\Cloud.xml" />
   <CopyPackageParameters CompressPackage="true" />
   <UpgradeDeployment Mode="UnmonitoredAuto" Enabled="false">
